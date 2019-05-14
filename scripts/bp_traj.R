@@ -1,5 +1,8 @@
 library(dplyr)
 library(magrittr)
+library(ggplot2)
+
+# fhs
 
 fhsclin4568 <- readRDS("data/fhsclin_ex4568.rds")
 
@@ -31,9 +34,7 @@ dat9 <- fhsclin4568 %>%
   dplyr::select(AGE = AGE9, SEX = SEX, DM = curr_diab9, SBP = SBP9, DBP = DBP9, HRX = HRX9, BMI = BMI9, ID, SMK = CURRSMK9, FG = FASTING_BG9) %>%
   mutate(TP = 9)
 
-dat <- rbind(dat1, dat2, dat3, dat4, dat5, dat6, dat7, dat8, dat9) %>% 
-  mutate(PP = SBP - DBP,
-         MAP = DBP + 1/3*PP) 
+dat <- rbind(dat1, dat2, dat3, dat4, dat5, dat6, dat7, dat8, dat9) 
 
 rm(dat1, dat2, dat3, dat4, dat5, dat6, dat7, dat8, dat9)
 
@@ -49,7 +50,6 @@ rm(dat)
 
 library(haven)
 
-
 MESA_ALT <- read.csv("data/mesa_cleaned.csv")
 MESA_ALT <- MESA_ALT[,c("SBP","DBP","SEX","AGE","HRX","id","TP")] %>% 
   mutate(SEX = ifelse(SEX=="F",2,1), 
@@ -59,7 +59,6 @@ MESA_ALT <- MESA_ALT[,c("SBP","DBP","SEX","AGE","HRX","id","TP")] %>%
          TP = paste("mesa",TP,sep = "")) %>%
   na.omit() 
 
-library(ggplot2)
 
 cardia <- read.csv("data/cardia_cleaned.csv")
 cardia <- cardia[,c("SBP","DBP","SEX","AGE","HRX","id","TP")] %>% 
@@ -130,8 +129,6 @@ comb_dat$pred_SBP <- predict(lmer(SBP ~ AGE +
 plot_x_min <- max(c(quantile(comb_dat[which(comb_dat$SEX==1),]$AGE, 0.005,na.rm = T),quantile(comb_dat[which(comb_dat$SEX==2),]$AGE, 0.005,na.rm = T)))
 
 plot_x_max <- min(c(quantile(comb_dat[which(comb_dat$SEX==1),]$AGE, 0.995,na.rm = T),quantile(comb_dat[which(comb_dat$SEX==2),]$AGE, 0.995,na.rm = T)))
-
-fitmethod <- "loess"
 
 group1_sbp <- ggplot(aes(x=AGE,y=pred_SBP),data= comb_dat %>% filter(SEX ==1, AGE>=plot_x_min)) + geom_smooth(method = lm, formula = y ~ splines::bs(x), se = T)
 group2_sbp <- ggplot(aes(x=AGE,y=pred_SBP),data= comb_dat %>% filter(SEX ==2, AGE>=plot_x_min)) + geom_smooth(method = lm, formula = y ~ splines::bs(x), se = T)
@@ -300,8 +297,6 @@ library(gridExtra)
 
 par(mai=c(0,0,0,0),xaxs="i",yaxs="i")
 
-
-
 grid.arrange(
   base1,
   adj1,
@@ -326,339 +321,4 @@ adj4
 
 
 
-
-library(tableone)
-tabledata <- comb_dat
-listVars <- c("AGE","SBP","DBP","PP","MAP","HRX")
-
-# inctod elements------
-
-tabledata$SEX<-factor(tabledata$SEX)
-tabledata$HRX<-factor(tabledata$HRX)
-
-table1 <- CreateTableOne(vars = listVars, data = tabledata %>% filter(cohort == "ARIC"), strata = "SEX", testNonNormal = kruskal.test)
-table2 <- CreateTableOne(vars = listVars, data = tabledata %>% filter(cohort == "cardia"), strata = "SEX", testNonNormal = kruskal.test)
-table3 <- CreateTableOne(vars = listVars, data = tabledata %>% filter(cohort == "fhs"), strata = "SEX", testNonNormal = kruskal.test)
-table4 <- CreateTableOne(vars = listVars, data = tabledata %>% filter(cohort == "MESA"), strata = "SEX", testNonNormal = kruskal.test)
-
-
-print(table2)
-print(table3)
-print(table4)
-
-table_comb  <- cbind(print(table1), print(table2), print(table3), print(table4))
-
-write.csv(table_comb,"output/table_comb.csv")
-
-
-sexdat$id %>% unique()%>% length()
-sexdat <- comb_dat[,c("id","SEX")] %>% unique()
-
-sexdat$SEX %>% as.factor() %>% summary()
-
-
-f_m<-NULL
-f_m$AGE <- 19:plot_x_max
-f_m$f_sbp<- predict(lm(pred_SBP ~ bs(AGE), data = comb_dat %>% filter(SEX==2)), newdata = data.frame(AGE = f_m$AGE+1, SEX=2))-
-  predict(lm(pred_SBP ~ bs(AGE), data = comb_dat %>% filter(SEX==2)), newdata = data.frame(AGE = f_m$AGE, SEX=2))
-f_m$m_sbp <-predict(lm(pred_SBP ~ bs(AGE), data = comb_dat %>% filter(SEX==1)), newdata = data.frame(AGE = f_m$AGE+1, SEX=1))-
-  predict(lm(pred_SBP ~ bs(AGE), data = comb_dat %>% filter(SEX==1)), newdata = data.frame(AGE = f_m$AGE, SEX=1))
-f_m$f_dbp<- predict(lm(pred_DBP ~ bs(AGE), data = comb_dat %>% filter(SEX==2)), newdata = data.frame(AGE = f_m$AGE+1, SEX=2))-
-  predict(lm(pred_DBP ~ bs(AGE), data = comb_dat %>% filter(SEX==2)), newdata = data.frame(AGE = f_m$AGE, SEX=2))
-f_m$m_dbp <-predict(lm(pred_DBP ~ bs(AGE), data = comb_dat %>% filter(SEX==1)), newdata = data.frame(AGE = f_m$AGE+1, SEX=1))-
-  predict(lm(pred_DBP ~ bs(AGE), data = comb_dat %>% filter(SEX==1)), newdata = data.frame(AGE = f_m$AGE, SEX=1))
-f_m$f_map<- predict(lm(pred_MAP ~ bs(AGE), data = comb_dat %>% filter(SEX==2)), newdata = data.frame(AGE = f_m$AGE+1, SEX=2))-
-  predict(lm(pred_MAP ~ bs(AGE), data = comb_dat %>% filter(SEX==2)), newdata = data.frame(AGE = f_m$AGE, SEX=2))
-f_m$m_map <-predict(lm(pred_MAP ~ bs(AGE), data = comb_dat %>% filter(SEX==1)), newdata = data.frame(AGE = f_m$AGE+1, SEX=1))-
-  predict(lm(pred_MAP ~ bs(AGE), data = comb_dat %>% filter(SEX==1)), newdata = data.frame(AGE = f_m$AGE, SEX=1))
-f_m$f_pp<- predict(lm(pred_PP ~ bs(AGE), data = comb_dat %>% filter(SEX==2)), newdata = data.frame(AGE = f_m$AGE+1, SEX=2))-
-  predict(lm(pred_PP ~ bs(AGE), data = comb_dat %>% filter(SEX==2)), newdata = data.frame(AGE = f_m$AGE, SEX=2))
-f_m$m_pp <-predict(lm(pred_PP ~ bs(AGE), data = comb_dat %>% filter(SEX==1)), newdata = data.frame(AGE = f_m$AGE+1, SEX=1))-
-  predict(lm(pred_PP ~ bs(AGE), data = comb_dat %>% filter(SEX==1)), newdata = data.frame(AGE = f_m$AGE, SEX=1))
-
-f_m_dif <- f_m %>% as.data.frame() %>% mutate(dif_sbp = (f_sbp-m_sbp),
-                                              dif_dbp = (f_dbp-m_dbp),
-                                              dif_map = (f_map-m_map),
-                                              dif_pp = (f_pp-m_pp))
-
-
-gg_color_hue <- function(n) {
-  hues = seq(15, 375, length = n + 1)
-  hcl(h = hues, l = 65, c = 100)[1:n]
-}
-n = 8
-cols = gg_color_hue(n)
-
-
-detplot<- ggplot(data = f_m_dif) +
-  geom_point(aes(x = AGE, y = dif_sbp, color = "sbp")) + 
-  geom_point(aes(x = AGE, y = dif_dbp, color = "dbp")) + 
-  geom_point(aes(x = AGE, y = dif_map, color = "map")) + 
-  geom_point(aes(x = AGE, y = dif_pp, color = "pp")) +
-  scale_color_manual(name = "BP measures", 
-                     values = c("sbp" = "blue4", "dbp" = cols[2], "map" = cols[6], "pp" = cols[1]),
-                     labels = c("sbp" ="SBP","dbp" = "DBP", "map" = "MAP","pp" = "PP")) +
-  geom_hline(yintercept=0, lty=1, lwd=1, col="black") +  
-  theme_bw() +
-  theme(axis.text= element_text(hjust = 0.5, size= 12,colour="black",face="bold"),
-        axis.title = element_text(hjust = 0.5, size= 16,colour="black",face="bold"),
-        plot.title = element_text(hjust = 0.5, size= 16,colour="black",face="bold"),
-        legend.position = c(0.2, 0.8),
-        legend.text = element_text(hjust = 0.5, size= 12,colour="black",face="bold"),
-        legend.title = element_text(hjust = 0.5, size= 12,colour="black",face="bold"),
-        legend.background = element_rect(fill="white",
-                                         size=0.5, linetype="solid", 
-                                         colour ="black")
-  ) +
-  scale_x_continuous(name=c("Age"),   breaks = seq(from = 20, to = 80, by = 10)) + # change #
-  scale_y_continuous(name="Deterioration Rate [F vs. M], mmHg/year") + 
-  ggtitle("")
-detplot 
-  
-
-plot(f_m_dif$AGE,f_m_dif$dif_sbp)
-plot(f_m_dif$AGE,f_m_dif$dif_dbp)
-plot(f_m_dif$AGE,f_m_dif$dif_map)
-plot(f_m_dif$AGE,f_m_dif$dif_pp)
-
-
-
-
-comb_dat$AGE %>% summary
-
-library(tibble)
-age10 <- comb_dat %>% mutate(age10 = AGE/10)
-
-sbpci <- summary(lm(pred_SBP ~ age10*SEX, data = age10))$coefficients %>% 
-  as.data.frame() %>%
-  mutate(lower = Estimate - 1.96*`Std. Error`,
-         upper = Estimate + 1.96*`Std. Error`,
-         term = "sbp")
-dbpci <- summary(lm(pred_DBP ~ age10*SEX, data = age10 %>% filter(AGE < 60)))$coefficients %>% 
-  as.data.frame() %>%
-  mutate(lower = Estimate - 1.96*`Std. Error`,
-         upper = Estimate + 1.96*`Std. Error`,
-         term = "dbp")
-mapci <- summary(lm(pred_MAP ~ age10*SEX, data = age10 %>% filter(AGE < 60)))$coefficients %>% 
-  as.data.frame() %>%
-  mutate(lower = Estimate - 1.96*`Std. Error`,
-         upper = Estimate + 1.96*`Std. Error`,
-         term = "map")
-ppci <- summary(lm(pred_PP ~ age10*SEX, data = age10))$coefficients %>% 
-  as.data.frame() %>%
-  mutate(lower = Estimate - 1.96*`Std. Error`,
-         upper = Estimate + 1.96*`Std. Error`,
-         term = "pp")
-
-bpci <- rbind(sbpci,dbpci,mapci,ppci) %>% 
-  rownames_to_column("num") %>% 
-  filter(num %in% c(4,8,12,16)) %>%
-  mutate(CI = paste(sprintf("%.3f", Estimate),"(",sprintf("%.3f", lower),", ",sprintf("%.3f", upper),")",sep = ""),
-         dura = c("All ages","< 60 yrs"," < 60 yrs","All ages"))
-
-write.csv(bpci,"output/bpci.csv")
-
-
-
-barplot<- ggplot(data=bpci, aes(x=term, y=Estimate)) +
-  geom_bar(aes(fill = term), position=position_dodge(), stat="identity", width = 0.3, show.legend = F) +
-  geom_errorbar(aes(ymin=lower, ymax=upper), color = "grey40", width=.2 , size = 1) +
-  coord_flip() +  # flip coordinates (puts labels on y axis)
-  scale_y_continuous(breaks = c(0.6,0.8,1,1.2,1.4,1.6,1.8)) +
-  scale_x_discrete(labels = c("sbp" ="SBP (All ages)","dbp" = "DBP (< 60 yrs)", "map" = "MAP (< 60 yrs)","pp" = "PP (All ages)")) +
-  scale_fill_manual(name = "BP measures", 
-                     values = c("sbp" = "blue4", "dbp" = cols[2], "map" = cols[6], "pp" = cols[1]),
-                     labels = c("sbp" ="SBP","dbp" = "DBP", "map" = "MAP","pp" = "PP")) +
-  theme_bw() + # use a white background
-  theme(
-    axis.title = element_blank(),
-    axis.text.y = element_text(colour = "#434443", size = 12,face="bold"),
-    axis.text.x = element_text(colour="#434443",size= 12,angle = 0,vjust=0.5,face="bold"),
-    plot.title = element_text(colour = "black", size = 15,face="bold",hjust = 0.5),
-    axis.ticks = element_blank(),
-    legend.text = element_text(colour = "black", size = 14,face="bold"),
-    legend.title = element_text(colour = "black", size = 14,face="bold"),
-    panel.border = element_rect(colour = "grey80", size=1.5, linetype=1)
-  ) +
-  ggtitle("Coefficients for Women vs. Men, mmHg/10y") 
-
-
-
-
-
-
-range <- plot_x_min:plot_x_max
-boot.fun1 <- function(data, indices){
-  data <-data[indices,]	#this does the random resampling of rows
-  f_m<-NULL
-  f_m$AGE <- range
-  f_m$f_bp<- predict(lm(pred_SBP ~ bs(AGE), data = data %>% filter(SEX==2)), newdata = data.frame(AGE = f_m$AGE+1, SEX=2))-
-    predict(lm(pred_SBP ~ bs(AGE), data = data %>% filter(SEX==2)), newdata = data.frame(AGE = f_m$AGE, SEX=2))
-  f_m$m_bp <-predict(lm(pred_SBP ~ bs(AGE), data = data %>% filter(SEX==1)), newdata = data.frame(AGE = f_m$AGE+1, SEX=1))-
-    predict(lm(pred_SBP ~ bs(AGE), data = data %>% filter(SEX==1)), newdata = data.frame(AGE = f_m$AGE, SEX=1))
-  f_m_dif <- f_m %>% as.data.frame() %>% mutate(dif_bp = (f_bp-m_bp))
-  print(indices[[1]])
-  f_m_dif$dif_bp
-  }
-
-library(boot)
-library(reshape2)
-boot1000 <- boot(data = comb_dat, statistic = boot.fun1, R=1000)	
-# medconfint <- boot.ci(medboot, index=1, conf=(.95), type="perc")
-
-bootdat_1 <- NULL
-bootdat_1$AGE <- range
-bootdat_1$mean <- boot1000$t %>% as.data.frame() %>%sapply(mean)
-bootdat_1$se <- boot1000$t %>% as.data.frame() %>%sapply(sd)
-bootdat_1 %<>% as.data.frame()
-
-
-ggplot() +
-  geom_smooth(aes(x = AGE, y = mean), data = bootdat_1) +
-  geom_ribbon(aes(x = AGE, ymin = mean -1.96*se, ymax = mean + 1.96*se), data = bootdat_1, alpha = 0.2)
-
-
-# pvalue = 1 - sum (boot1000$t0*boot1000$t > 0) / (1 + boot1000$R)
-
-eval(parse(text = paste("medlist2[",i,",] <- c(medboot$t0,medconfint$percent[4:5],pvalue)")))
-
-
-range <- plot_x_min:plot_x_max
-boot.fun2 <- function(data, indices){
-  data <-data[indices,]	#this does the random resampling of rows
-  f_m<-NULL
-  f_m$AGE <- range
-  f_m$f_bp<- predict(lm(pred_DBP ~ bs(AGE), data = data %>% filter(SEX==2)), newdata = data.frame(AGE = f_m$AGE+1, SEX=2))-
-    predict(lm(pred_DBP ~ bs(AGE), data = data %>% filter(SEX==2)), newdata = data.frame(AGE = f_m$AGE, SEX=2))
-  f_m$m_bp <-predict(lm(pred_DBP ~ bs(AGE), data = data %>% filter(SEX==1)), newdata = data.frame(AGE = f_m$AGE+1, SEX=1))-
-    predict(lm(pred_DBP ~ bs(AGE), data = data %>% filter(SEX==1)), newdata = data.frame(AGE = f_m$AGE, SEX=1))
-  f_m_dif <- f_m %>% as.data.frame() %>% mutate(dif_bp = (f_bp-m_bp))
-  print(indices[[1]])
-  f_m_dif$dif_bp
-}
-
-library(boot)
-library(reshape2)
-boot1000_2 <- boot(data = comb_dat, statistic = boot.fun2, R=1000)	
-# medconfint <- boot.ci(medboot, index=1, conf=(.95), type="perc")
-
-bootdat_2 <- NULL
-bootdat_2$AGE <- range
-bootdat_2$mean <- boot1000_2$t %>% as.data.frame() %>%sapply(mean)
-bootdat_2$se <- boot1000_2$t %>% as.data.frame() %>%sapply(sd)
-bootdat_2 %<>% as.data.frame()
-
-
-ggplot() +
-  geom_smooth(aes(x = AGE, y = mean), data = bootdat_2) +
-  geom_ribbon(aes(x = AGE, ymin = mean -1.96*se, ymax = mean + 1.96*se), data = bootdat_2, alpha = 0.2)
-
-
-
-range <- plot_x_min:plot_x_max
-boot.fun3 <- function(data, indices){
-  data <-data[indices,]	#this does the random resampling of rows
-  f_m<-NULL
-  f_m$AGE <- range
-  f_m$f_bp<- predict(lm(pred_MAP ~ bs(AGE), data = data %>% filter(SEX==2)), newdata = data.frame(AGE = f_m$AGE+1, SEX=2))-
-    predict(lm(pred_MAP ~ bs(AGE), data = data %>% filter(SEX==2)), newdata = data.frame(AGE = f_m$AGE, SEX=2))
-  f_m$m_bp <-predict(lm(pred_MAP ~ bs(AGE), data = data %>% filter(SEX==1)), newdata = data.frame(AGE = f_m$AGE+1, SEX=1))-
-    predict(lm(pred_MAP ~ bs(AGE), data = data %>% filter(SEX==1)), newdata = data.frame(AGE = f_m$AGE, SEX=1))
-  f_m_dif <- f_m %>% as.data.frame() %>% mutate(dif_bp = (f_bp-m_bp))
-  print(indices[[1]])
-  f_m_dif$dif_bp
-}
-
-library(boot)
-library(reshape2)
-boot1000_3 <- boot(data = comb_dat, statistic = boot.fun3, R=1000)	
-# medconfint <- boot.ci(medboot, index=1, conf=(.95), type="perc")
-
-bootdat_3 <- NULL
-bootdat_3$AGE <- range
-bootdat_3$mean <- boot1000_3$t %>% as.data.frame() %>%sapply(mean)
-bootdat_3$se <- boot1000_3$t %>% as.data.frame() %>%sapply(sd)
-bootdat_3 %<>% as.data.frame()
-
-
-ggplot() +
-  geom_smooth(aes(x = AGE, y = mean), data = bootdat_3) +
-  geom_ribbon(aes(x = AGE, ymin = mean -1.96*se, ymax = mean + 1.96*se), data = bootdat_3, alpha = 0.2)
-
-
-
-
-
-
-range <- plot_x_min:plot_x_max
-boot.fun4 <- function(data, indices){
-  data <-data[indices,]	#this does the random resampling of rows
-  f_m<-NULL
-  f_m$AGE <- range
-  f_m$f_bp<- predict(lm(pred_PP ~ bs(AGE), data = data %>% filter(SEX==2)), newdata = data.frame(AGE = f_m$AGE+1, SEX=2))-
-    predict(lm(pred_PP ~ bs(AGE), data = data %>% filter(SEX==2)), newdata = data.frame(AGE = f_m$AGE, SEX=2))
-  f_m$m_bp <-predict(lm(pred_PP ~ bs(AGE), data = data %>% filter(SEX==1)), newdata = data.frame(AGE = f_m$AGE+1, SEX=1))-
-    predict(lm(pred_PP ~ bs(AGE), data = data %>% filter(SEX==1)), newdata = data.frame(AGE = f_m$AGE, SEX=1))
-  f_m_dif <- f_m %>% as.data.frame() %>% mutate(dif_bp = (f_bp-m_bp))
-  print(indices[[1]])
-  f_m_dif$dif_bp
-}
-
-library(boot)
-library(reshape2)
-library(plyr)
-library(plotrix)
-
-boot1000_4 <- boot(data = comb_dat, statistic = boot.fun4, R=1000)	
-medconfint <- boot.ci(boot1000_4, index=1, conf=(.95), type="perc")
-
-
-
-bootdat_4 <- NULL
-bootdat_4$AGE <- range
-bootdat_4$mean <- boot1000_4$t %>% as.data.frame() %>%sapply(mean)
-bootdat_4$se <- boot1000_4$t %>% as.data.frame() %>%sapply(sd)
-bootdat_4 %<>% as.data.frame()
-
-ggplot() +
-  geom_smooth(aes(x = AGE, y = mean), data = bootdat_4) +
-  geom_ribbon(aes(x = AGE, ymin = mean -1.96*se, ymax = mean + 1.96*se), data = bootdat_4, alpha = 0.2)
-  
-
-
-ggplot() +
-  geom_smooth(aes(x = AGE, y = mean, color = "sbp"), data = bootdat_1, method = lm, formula = y ~ bs(x)) + 
-  geom_ribbon(aes(x = AGE, ymin = mean -1.96*se, ymax = mean + 1.96*se, fill = "sbp"), data = bootdat_1, alpha = 0.2) +
-  geom_smooth(aes(x = AGE, y = mean, color = "dbp"), data = bootdat_2, method = lm, formula = y ~ bs(x)) + 
-  geom_ribbon(aes(x = AGE, ymin = mean -1.96*se, ymax = mean + 1.96*se, fill = "dbp"), data = bootdat_2, alpha = 0.2) +
-  geom_smooth(aes(x = AGE, y = mean, color = "map"), data = bootdat_3, method = lm, formula = y ~ bs(x)) + 
-  geom_ribbon(aes(x = AGE, ymin = mean -1.96*se, ymax = mean + 1.96*se, fill = "map"), data = bootdat_3, alpha = 0.2) +
-  geom_smooth(aes(x = AGE, y = mean, color = "pp"), data = bootdat_4, method = lm, formula = y ~ bs(x)) +
-  geom_ribbon(aes(x = AGE, ymin = mean -1.96*se, ymax = mean + 1.96*se, fill = "pp"), data = bootdat_4, alpha = 0.2) +
-  scale_color_manual(name = "BP measures", 
-                     breaks = c("sbp","dbp","map","pp"),
-                     values = c("sbp" = "blue4", "dbp" = cols[2], "map" = cols[6], "pp" = cols[1]),
-                     labels = c("sbp" ="SBP","dbp" = "DBP", "map" = "MAP","pp" = "PP")) +
-  scale_fill_manual(name = "BP measures", 
-                    breaks = c("sbp","dbp","map","pp"),
-                    values = c("sbp" = "blue4", "dbp" = cols[2], "map" = cols[6], "pp" = cols[1]),
-                     labels = c("sbp" ="SBP","dbp" = "DBP", "map" = "MAP","pp" = "PP")) +
-  geom_hline(yintercept=0, lty=1, lwd=1, col="black") +  
-  theme_bw() +
-  theme(axis.text= element_text(hjust = 0.5, size= 12,colour="black",face="bold"),
-        axis.title = element_text(hjust = 0.5, size= 16,colour="black",face="bold"),
-        plot.title = element_text(hjust = 0.5, size= 16,colour="black",face="bold"),
-        legend.position = c(0.2, 0.85),
-        legend.text = element_text(hjust = 0.5, size= 12,colour="black",face="bold"),
-        legend.title = element_text(hjust = 0.5, size= 12,colour="black",face="bold"),
-        legend.background = element_rect(fill="white",
-                                         size=0.5, linetype="solid", 
-                                         colour ="black")
-  ) +
-  scale_x_continuous(name=c("Age"),   breaks = seq(from = 20, to = 80, by = 10)) + # change #
-  scale_y_continuous(name="Deterioration Rate [F vs. M], mmHg/year") + 
-  ggtitle("") +
-  guides(fill = guide_legend(override.aes = list(alpha = 0.2)))
-
-  
   
