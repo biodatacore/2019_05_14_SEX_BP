@@ -59,6 +59,7 @@ MESA_ALT <- MESA_ALT[,c("SBP","DBP","SEX","AGE","HRX","id","TP")] %>%
          TP = paste("mesa",TP,sep = "")) %>%
   na.omit() 
 
+# CARDIA
 
 cardia <- read.csv("data/cardia_cleaned.csv")
 cardia <- cardia[,c("SBP","DBP","SEX","AGE","HRX","id","TP")] %>% 
@@ -92,13 +93,14 @@ ARIC_comb <- rbind(ARIC_dat1, ARIC_dat2, ARIC_dat3, ARIC_dat4) %>% mutate(SEX = 
                                                                           cohort = "ARIC",
                                                                           TP = paste("aric",TP,sep = "")) %>% na.omit()
 
-saveRDS(rbind(cardia, fhs, MESA_ALT, ARIC_comb), "data/comb_dat.rds")
 
 comb_dat <- rbind(cardia, fhs, MESA_ALT, ARIC_comb) %>% 
   mutate(SBP = ifelse(HRX==1, SBP + 10 , SBP),
          DBP = ifelse(HRX==1, DBP + 5 , DBP),
          PP = SBP - DBP,
          MAP = DBP + 1/3*PP)
+
+saveRDS(comb_dat, "data/comb_dat.rds")
 
 # fhs[,"id"] %>% unique() %>% nrow()
 # ARIC_comb[,"id"] %>% unique() %>% nrow()
@@ -117,6 +119,15 @@ comb_dat <- rbind(cardia, fhs, MESA_ALT, ARIC_comb) %>%
 library(lme4)
 library(splines)
 library(rms)
+
+# get cental 99% range of age
+
+plot_x_min <- max(c(quantile(comb_dat[which(comb_dat$SEX==1),]$AGE, 0.005,na.rm = T),quantile(comb_dat[which(comb_dat$SEX==2),]$AGE, 0.005,na.rm = T)))
+
+plot_x_max <- min(c(quantile(comb_dat[which(comb_dat$SEX==1),]$AGE, 0.995,na.rm = T),quantile(comb_dat[which(comb_dat$SEX==2),]$AGE, 0.995,na.rm = T)))
+
+
+# SBP
 comb_dat$pred_SBP <- predict(lmer(SBP ~ AGE + 
                                     SEX + 
                                     HRX +
@@ -124,11 +135,6 @@ comb_dat$pred_SBP <- predict(lmer(SBP ~ AGE +
                                     TP +
                                     (1|id), 
                                   data = comb_dat))
-
-
-plot_x_min <- max(c(quantile(comb_dat[which(comb_dat$SEX==1),]$AGE, 0.005,na.rm = T),quantile(comb_dat[which(comb_dat$SEX==2),]$AGE, 0.005,na.rm = T)))
-
-plot_x_max <- min(c(quantile(comb_dat[which(comb_dat$SEX==1),]$AGE, 0.995,na.rm = T),quantile(comb_dat[which(comb_dat$SEX==2),]$AGE, 0.995,na.rm = T)))
 
 group1_sbp <- ggplot(aes(x=AGE,y=pred_SBP),data= comb_dat %>% filter(SEX ==1, AGE>=plot_x_min)) + geom_smooth(method = lm, formula = y ~ splines::bs(x), se = T)
 group2_sbp <- ggplot(aes(x=AGE,y=pred_SBP),data= comb_dat %>% filter(SEX ==2, AGE>=plot_x_min)) + geom_smooth(method = lm, formula = y ~ splines::bs(x), se = T)
@@ -164,6 +170,7 @@ adj1 <- ggplot() +
         title = element_text(color = "#434443",size =16,face="bold"))
 
 
+# DBP
 comb_dat$pred_DBP <- predict(lmer(DBP ~ AGE + 
                                     SEX + 
                                     HRX +
@@ -207,6 +214,7 @@ adj2 <- ggplot() +
         title = element_text(color = "#434443",size =16,face="bold"))
 
 
+# MAP
 comb_dat$pred_MAP <- predict(lmer(MAP ~ AGE + 
                                     SEX + 
                                     HRX +
@@ -250,6 +258,7 @@ adj3 <- ggplot() +
 
 
 
+# PP
 comb_dat$pred_PP <- predict(lmer(PP ~ AGE + 
                                    SEX + 
                                    HRX +

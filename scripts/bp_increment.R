@@ -1,4 +1,5 @@
-# incremental
+# incremental BP from baseline
+
 
 f_m<-NULL
 f_m$AGE <- plot_x_min:plot_x_max
@@ -63,7 +64,7 @@ increplot
 
 range <- plot_x_min:plot_x_max
 boot.fun1 <- function(data, indices){
-  data <-data[indices,]	#this does the random resampling of rows
+  data <-data[indices,]	
   f_m<-NULL
   f_m$AGE <- range
   f_m$f_bp<- predict(lm(pred_SBP ~ bs(AGE), data = data %>% filter(SEX==2)), newdata = data.frame(AGE = f_m$AGE+1, SEX=2))-
@@ -78,7 +79,6 @@ boot.fun1 <- function(data, indices){
 library(boot)
 library(reshape2)
 boot1000 <- boot(data = comb_dat, statistic = boot.fun1, R=1000)	
-# medconfint <- boot.ci(medboot, index=1, conf=(.95), type="perc")
 
 bootdat_1 <- NULL
 bootdat_1$AGE <- range
@@ -92,12 +92,11 @@ ggplot() +
   geom_ribbon(aes(x = AGE, ymin = mean -1.96*se, ymax = mean + 1.96*se), data = bootdat_1, alpha = 0.2)
 
 
-# pvalue = 1 - sum (boot1000$t0*boot1000$t > 0) / (1 + boot1000$R)
 
 
 range <- plot_x_min:plot_x_max
 boot.fun2 <- function(data, indices){
-  data <-data[indices,]	#this does the random resampling of rows
+  data <-data[indices,]	
   f_m<-NULL
   f_m$AGE <- range
   f_m$f_bp<- predict(lm(pred_DBP ~ bs(AGE), data = data %>% filter(SEX==2)), newdata = data.frame(AGE = f_m$AGE+1, SEX=2))-
@@ -112,7 +111,6 @@ boot.fun2 <- function(data, indices){
 library(boot)
 library(reshape2)
 boot1000_2 <- boot(data = comb_dat, statistic = boot.fun2, R=1000)	
-# medconfint <- boot.ci(medboot, index=1, conf=(.95), type="perc")
 
 bootdat_2 <- NULL
 bootdat_2$AGE <- range
@@ -129,7 +127,7 @@ ggplot() +
 
 range <- plot_x_min:plot_x_max
 boot.fun3 <- function(data, indices){
-  data <-data[indices,]	#this does the random resampling of rows
+  data <-data[indices,]	
   f_m<-NULL
   f_m$AGE <- range
   f_m$f_bp<- predict(lm(pred_MAP ~ bs(AGE), data = data %>% filter(SEX==2)), newdata = data.frame(AGE = f_m$AGE+1, SEX=2))-
@@ -144,7 +142,6 @@ boot.fun3 <- function(data, indices){
 library(boot)
 library(reshape2)
 boot1000_3 <- boot(data = comb_dat, statistic = boot.fun3, R=1000)	
-# medconfint <- boot.ci(medboot, index=1, conf=(.95), type="perc")
 
 bootdat_3 <- NULL
 bootdat_3$AGE <- range
@@ -164,7 +161,7 @@ ggplot() +
 
 range <- plot_x_min:plot_x_max
 boot.fun4 <- function(data, indices){
-  data <-data[indices,]	#this does the random resampling of rows
+  data <-data[indices,]	
   f_m<-NULL
   f_m$AGE <- range
   f_m$f_bp<- predict(lm(pred_PP ~ bs(AGE), data = data %>% filter(SEX==2)), newdata = data.frame(AGE = f_m$AGE+1, SEX=2))-
