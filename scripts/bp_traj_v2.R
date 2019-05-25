@@ -135,10 +135,8 @@ plot_x_max <- min(c(quantile(comb_dat[which(comb_dat$SEX==1),]$AGE, 0.995,na.rm 
 
 # SBP
 
-modm1 <- lmer(SBP ~ bs(AGE,5) + TP + (1|id), data = comb_dat %>% filter(SEX==1))
-modf1 <- lmer(SBP ~ bs(AGE,5) + TP + (1|id), data = comb_dat %>% filter(SEX==2))
-datm1 <- data.frame(AGE = plot_x_min:plot_x_max, TP = "cardia0", id = "1")
-datf1 <- data.frame(AGE = plot_x_min:plot_x_max, TP = "cardia0", id = "1")
+modm1 <- lmer(SBP ~ bs(AGE,3) + TP + (1|id), data = comb_dat %>% filter(SEX==1))
+modf1 <- lmer(SBP ~ bs(AGE,3) + TP + (1|id), data = comb_dat %>% filter(SEX==2))
 
 boot_m1 <- predict(modm1, newdata = datm1, re.form=NA, se.fit=TRUE, nsim=100)
 boot_f1 <- predict(modf1, newdata = datf1, re.form=NA, se.fit=TRUE, nsim=100)
@@ -216,8 +214,8 @@ adj1 <- ggplot() +
 
 # DBP
 
-modm2 <- lmer(DBP ~ bs(AGE,5) + TP + (1|id), data = comb_dat %>% filter(SEX==1))
-modf2 <- lmer(DBP ~ bs(AGE,5) + TP + (1|id), data = comb_dat %>% filter(SEX==2))
+modm2 <- lmer(DBP ~ bs(AGE,3) + TP + (1|id), data = comb_dat %>% filter(SEX==1))
+modf2 <- lmer(DBP ~ bs(AGE,3) + TP + (1|id), data = comb_dat %>% filter(SEX==2))
 datm2 <- data.frame(AGE = plot_x_min:plot_x_max, TP = "cardia0", id = "1")
 datf2 <- data.frame(AGE = plot_x_min:plot_x_max, TP = "cardia0", id = "1")
 
@@ -294,11 +292,11 @@ adj2 <- ggplot() +
 
 
 # MAP
-
 modm3 <- lmer(MAP ~ bs(AGE) + TP + (1|id), data = comb_dat %>% filter(SEX==1))
 modf3 <- lmer(MAP ~ bs(AGE) + TP + (1|id), data = comb_dat %>% filter(SEX==2))
-datm3 <- data.frame(AGE = plot_x_min:plot_x_max, TP = "cardia0", HRX = 0, id = "1")
-datf3 <- data.frame(AGE = plot_x_min:plot_x_max, TP = "cardia0", HRX = 0, id = "1")
+
+datm3 <- data.frame(AGE = plot_x_min:plot_x_max, TP = "cardia0", id = "1")
+datf3 <- data.frame(AGE = plot_x_min:plot_x_max, TP = "cardia0", id = "1")
 
 boot_m3 <- predict(modm3, newdata = datm3, re.form=NA, se.fit=TRUE, nsim=100)
 boot_f3 <- predict(modf3, newdata = datf3, re.form=NA, se.fit=TRUE, nsim=100)
@@ -499,6 +497,31 @@ adj1
 adj2
 adj3
 adj4
+
+
+lrt_sbp <- anova(
+  lmer(SBP ~ bs(AGE) + SEX + TP + (1|id), data = comb_dat),
+  lmer(SBP ~ bs(AGE) + SEX + bs(AGE)*SEX + TP + (1|id), data = comb_dat),
+  test = "LRT"
+)
+
+lrt_dbp <- anova(
+  lmer(DBP ~ bs(AGE) + SEX + TP + (1|id), data = comb_dat),
+  lmer(DBP ~ bs(AGE) + SEX + bs(AGE)*SEX + TP + (1|id), data = comb_dat),
+  test = "LRT"
+)
+
+lrt_map <- anova(
+  lmer(MAP ~ bs(AGE) + SEX + TP + (1|id), data = comb_dat),
+  lmer(MAP ~ bs(AGE) + SEX + bs(AGE)*SEX + TP + (1|id), data = comb_dat),
+  test = "LRT"
+)
+
+lrt_pp <- anova(
+  lmer(PP ~ bs(AGE) + SEX + TP + (1|id), data = comb_dat),
+  lmer(PP ~ bs(AGE) + SEX + bs(AGE)*SEX + TP + (1|id), data = comb_dat),
+  test = "LRT"
+)
 
 
 
