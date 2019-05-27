@@ -41,6 +41,7 @@ rm(dat1, dat2, dat3, dat4, dat5, dat6, dat7, dat8, dat9)
 fhs <- dat[,c("SBP","DBP","SEX","AGE","HRX","ID","TP")] %>% 
   mutate(id=ID, 
          cohort = "fhs",
+         visit = TP,
          TP = paste("fhs",TP,sep = "")) %>% 
   dplyr::select(-ID) %>% na.omit()
 
@@ -56,6 +57,7 @@ MESA_ALT <- MESA_ALT[,c("SBP","DBP","SEX","AGE","HRX","id","TP")] %>%
          cohort = "MESA",
          SBP = SBP + 0.5, 
          DBP = DBP + 2.9,
+         visit = TP,
          TP = paste("mesa",TP,sep = "")) %>%
   na.omit() 
 
@@ -70,6 +72,7 @@ cardia <- cardia[,c("SBP","DBP","SEX","AGE","HRX","id","TP")] %>%
          SBP = SBP + 2.6,
          DBP = DBP + 6.2,
          HRX = HRX -1,
+         visit = TP,
          TP = paste("cardia",TP,sep = "")) %>% 
   na.omit()
 
@@ -92,6 +95,7 @@ ARIC_comb <- rbind(ARIC_dat1, ARIC_dat2, ARIC_dat3, ARIC_dat4) %>% mutate(SEX = 
                                                                           SBP = SBP + 2.6,
                                                                           DBP = DBP + 6.2,
                                                                           cohort = "ARIC",
+                                                                          visit = TP,
                                                                           TP = paste("aric",TP,sep = "")) %>% na.omit()
 
 comb_dat <- rbind(cardia, fhs, MESA_ALT, ARIC_comb) %>% 
@@ -99,7 +103,9 @@ comb_dat <- rbind(cardia, fhs, MESA_ALT, ARIC_comb) %>%
          DBP = ifelse(HRX==1, DBP + 5 , DBP),
          PP = SBP - DBP,
          MAP = DBP + 1/3*PP,
-         AGE = round(AGE))
+         AGE = round(AGE),
+         TP = as.factor(TP),
+         id = as.factor(id))
 
 saveRDS(comb_dat, "data/comb_dat.rds")
 
@@ -117,6 +123,7 @@ saveRDS(comb_dat, "data/comb_dat.rds")
 
 comb_dat <- readRDS("data/comb_dat.rds")
 
+write.csv(comb_dat, "output/comb_dat.csv")
 
 library(lme4)
 library(splines)
@@ -125,15 +132,16 @@ library(nlme)
 library(merTools) # install.packages("merTools")
 library(plotrix)
 library(bootpredictlme4) # devtools::install_github("remkoduursma/bootpredictlme4")
+library(lspline)
 
 # get cental 99% range of age
 
 plot_x_min <- max(c(quantile(comb_dat[which(comb_dat$SEX==1),]$AGE, 0.005,na.rm = T),quantile(comb_dat[which(comb_dat$SEX==2),]$AGE, 0.005,na.rm = T)))
-
 plot_x_max <- min(c(quantile(comb_dat[which(comb_dat$SEX==1),]$AGE, 0.995,na.rm = T),quantile(comb_dat[which(comb_dat$SEX==2),]$AGE, 0.995,na.rm = T)))
 
 m <- comb_dat %>% filter(SEX==1)
 f <- comb_dat %>% filter(SEX==2)
+
 # SBP
 
 modm1 <- lmer(SBP ~ AGE + TP + (1|id), data = m)
@@ -142,15 +150,18 @@ modf1 <- lmer(SBP ~ AGE + TP + (1|id), data = f)
 m$pred_SBP <- predict(modm1)
 f$pred_SBP <- predict(modf1)
 
+
 base1 <- ggplot() +
-  geom_smooth(aes(x = AGE, y = pred_SBP, color = "red4", fill = "red4"), alpha = 0.2, data = f, method = lm, formula = y ~ splines::bs(x), se = T) +
-  geom_smooth(aes(x = AGE, y = pred_SBP, color = "blue4", fill = "blue4"), alpha = 0.2, data = m, method = lm, formula = y ~ splines::bs(x), se = T) +
+  coord_cartesian(xlim = c(plot_x_min,plot_x_max)) +
+  geom_smooth(aes(x = AGE, y = pred_SBP, color = "red4", fill = "red4"), alpha = 0.2, data = f, 
+              method = "lm", formula = y ~ rcspline.eval(x, knots = seq(plot_x_min, plot_x_max, 20)), se = T) +
+  geom_smooth(aes(x = AGE, y = pred_SBP, color = "blue4", fill = "blue4"), alpha = 0.2, data = m, 
+              method = "lm", formula = y ~ rcspline.eval(x, knots = seq(plot_x_min, plot_x_max, 20)), se = T) +
   scale_color_manual(name = "Sex", values = c("red4"="red4", "blue4"="blue4"), labels = c("red4"="Women","blue4"="Men")) +
   scale_fill_manual(name = "Sex", values = c("red4"="red4", "blue4"="blue4"), labels = c("red4"="Women","blue4"="Men")) +
   scale_y_continuous(name = "SBP, mm Hg") + 
-  scale_x_continuous(breaks = seq(from = 20, to = 80, by = 10), limits = c(plot_x_min,plot_x_max)) + 
+  scale_x_continuous(breaks = seq(from = 20, to = 80, by = 10)) + 
   ggtitle("Systolic Blood Pressure") +
-  # ggtitle("Unadjusted SBP") +
   theme_bw() +
   theme(axis.title = element_text(color = "#434443",size =15,face="bold"),
         axis.text = element_text(color = "#434443",size =12,face="bold"),
@@ -161,8 +172,10 @@ ym1 <- ggplot_build(base1)$data[[2]]$y[1]
 yf1 <- ggplot_build(base1)$data[[1]]$y[1]
 
 adj1 <- ggplot() +
-  geom_smooth(aes(x = AGE, y = pred_SBP-yf1, color = "red4", fill = "red4"), alpha = 0.2, data = f, method = lm, formula = y ~ splines::bs(x), se = T) +
-  geom_smooth(aes(x = AGE, y = pred_SBP-ym1, color = "blue4", fill = "blue4"), alpha = 0.2, data = m, method = lm, formula = y ~ splines::bs(x), se = T) +
+  geom_smooth(aes(x = AGE, y = pred_SBP - yf1, color = "red4", fill = "red4"), alpha = 0.2, data = f, 
+              method = "lm", formula = y ~ rcspline.eval(x, knots = seq(plot_x_min,plot_x_max,20)), se = T) +
+  geom_smooth(aes(x = AGE, y = pred_SBP - ym1, color = "blue4", fill = "blue4"), alpha = 0.2, data = m, 
+              method = "lm", formula = y ~ rcspline.eval(x, knots = seq(plot_x_min,plot_x_max,20)), se = T) +
   scale_color_manual(name = "Sex", values = c("red4"="red4", "blue4"="blue4"), labels = c("red4"="Women","blue4"="Men")) +
   scale_fill_manual(name = "Sex", values = c("red4"="red4", "blue4"="blue4"), labels = c("red4"="Women","blue4"="Men")) +
   scale_y_continuous(name = "SBP Elevation, mm Hg") + 
@@ -347,5 +360,29 @@ lrt_pp <- anova(
   test = "LRT"
 )
 
+
+lrt_sbp <- anova(
+  lmer(SBP ~ AGE + SEX + TP + (1|id), data = comb_dat),
+  lmer(SBP ~ AGE + SEX + AGE*SEX + TP + (1|id), data = comb_dat),
+  test = "LRT"
+)
+
+lrt_dbp <- anova(
+  lmer(DBP ~ AGE + SEX + TP + (1|id), data = comb_dat),
+  lmer(DBP ~ AGE + SEX + AGE*SEX + TP + (1|id), data = comb_dat),
+  test = "LRT"
+)
+
+lrt_map <- anova(
+  lmer(MAP ~ AGE + SEX + TP + (1|id), data = comb_dat),
+  lmer(MAP ~ AGE + SEX + AGE*SEX + TP + (1|id), data = comb_dat),
+  test = "LRT"
+)
+
+lrt_pp <- anova(
+  lmer(PP ~ AGE + SEX + TP + (1|id), data = comb_dat),
+  lmer(PP ~ AGE + SEX + AGE*SEX + TP + (1|id), data = comb_dat),
+  test = "LRT"
+)
 
 

@@ -1,6 +1,9 @@
 # incremental BP from baseline
 
 
+comb_dat[which(comb_dat$AGE<19),]$AGE
+
+
 f_m<-NULL
 f_m$AGE <- plot_x_min:plot_x_max
 f_m$f_sbp<- predict(lm(pred_SBP ~ bs(AGE), data = comb_dat %>% filter(SEX==2)), newdata = data.frame(AGE = f_m$AGE, SEX=2))-

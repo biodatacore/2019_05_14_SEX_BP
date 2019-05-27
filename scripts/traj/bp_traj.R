@@ -114,7 +114,7 @@ saveRDS(comb_dat, "data/comb_dat.rds")
 # unique(cardia[,c("id","SEX")])$SEX %>% as.factor() %>% summary()
 # unique(MESA_ALT[,c("id","SEX")])$SEX %>% as.factor() %>% summary()
 
-
+comb_dat <- readRDS("data/comb_dat.rds")
 
 library(lme4)
 library(splines)
@@ -122,16 +122,12 @@ library(rms)
 
 # get cental 99% range of age
 
-plot_x_min <- max(c(quantile(comb_dat[which(comb_dat$SEX==1),]$AGE, 0.005,na.rm = T),quantile(comb_dat[which(comb_dat$SEX==2),]$AGE, 0.005,na.rm = T)))
-
-plot_x_max <- min(c(quantile(comb_dat[which(comb_dat$SEX==1),]$AGE, 0.995,na.rm = T),quantile(comb_dat[which(comb_dat$SEX==2),]$AGE, 0.995,na.rm = T)))
+plot_x_min <- max(c(quantile(comb_dat[which(comb_dat$SEX==1),]$AGE, 0.0025,na.rm = T),quantile(comb_dat[which(comb_dat$SEX==2),]$AGE, 0.0025,na.rm = T)))
+plot_x_max <- min(c(quantile(comb_dat[which(comb_dat$SEX==1),]$AGE, 0.9975,na.rm = T),quantile(comb_dat[which(comb_dat$SEX==2),]$AGE, 0.9975,na.rm = T)))
 
 
 # SBP
-comb_dat$pred_SBP <- predict(lmer(SBP ~ AGE + 
-                                    SEX + 
-                                    HRX +
-                                    cohort +
+comb_dat$pred_SBP <- predict(lmer(SBP ~ bs(AGE) + 
                                     TP +
                                     (1|id), 
                                   data = comb_dat))
@@ -139,42 +135,40 @@ comb_dat$pred_SBP <- predict(lmer(SBP ~ AGE +
 group1_sbp <- ggplot(aes(x=AGE,y=pred_SBP),data= comb_dat %>% filter(SEX ==1, AGE>=plot_x_min)) + geom_smooth(method = lm, formula = y ~ splines::bs(x), se = T)
 group2_sbp <- ggplot(aes(x=AGE,y=pred_SBP),data= comb_dat %>% filter(SEX ==2, AGE>=plot_x_min)) + geom_smooth(method = lm, formula = y ~ splines::bs(x), se = T)
 
-y1<-as.data.frame(ggplot_build(group1_sbp)$data)$y[1]
-y2<-as.data.frame(ggplot_build(group2_sbp)$data)$y[1]
-y_adj1<-y1-y2
+ym1<-as.data.frame(ggplot_build(group1_sbp)$data)$y[1]
+yf1<-as.data.frame(ggplot_build(group2_sbp)$data)$y[1]
 
 base1 <- ggplot() +
   coord_cartesian(xlim = c(plot_x_min,plot_x_max)) +
-  geom_smooth(aes(x = AGE, y = pred_SBP, color = "red4"), data = comb_dat %>% filter(SEX==2, AGE>=plot_x_min), method = lm, formula = y ~ splines::bs(x), se = T) +
-  geom_smooth(aes(x = AGE, y = pred_SBP, color = "blue4"), data = comb_dat %>% filter(SEX==1, AGE>=plot_x_min), method = lm, formula = y ~ splines::bs(x), se = T) +
+  geom_smooth(aes(x = AGE, y = pred_SBP, color = "red4", fill = "red4"), alpha = 0.2, data = comb_dat %>% filter(SEX==2, AGE>=plot_x_min), method = lm, formula = y ~ splines::bs(x), se = T) +
+  geom_smooth(aes(x = AGE, y = pred_SBP, color = "blue4", fill = "blue4"), alpha = 0.2, data = comb_dat %>% filter(SEX==1, AGE>=plot_x_min), method = lm, formula = y ~ splines::bs(x), se = T) +
   scale_color_manual(name = "Sex", values = c("red4"="red4", "blue4"="blue4"), labels = c("red4"="Women","blue4"="Men")) +
+  scale_fill_manual(name = "Sex", values = c("red4"="red4", "blue4"="blue4"), labels = c("red4"="Women","blue4"="Men")) +
   scale_y_continuous(name = "SBP, mm Hg") + 
   scale_x_continuous(breaks = seq(from = 20, to = 80, by = 10)) + 
-  # ggtitle("Systolic Blood Pressure") +
-  ggtitle("Unadjusted SBP") +
+  ggtitle("Systolic Blood Pressure") +
+  theme_bw() +
   theme(axis.title = element_text(color = "#434443",size =15,face="bold"),
         axis.text = element_text(color = "#434443",size =12,face="bold"),
         title = element_text(color = "#434443",size =16,face="bold"))
 
 adj1 <- ggplot() +
   coord_cartesian(xlim = c(plot_x_min,plot_x_max)) +
-  geom_smooth(aes(x = AGE, y = pred_SBP + y_adj1, color = "red4"), data = comb_dat %>% filter(SEX==2, AGE>=plot_x_min), method = lm, formula = y ~ splines::bs(x), se = T) +
-  geom_smooth(aes(x = AGE, y = pred_SBP, color = "blue4"), data = comb_dat %>% filter(SEX==1, AGE>=plot_x_min), method = lm, formula = y ~ splines::bs(x), se = T) +
+  geom_smooth(aes(x = AGE, y = pred_SBP-yf1, color = "red4", fill = "red4"), alpha = 0.2, data = comb_dat %>% filter(SEX==2, AGE>=plot_x_min), method = lm, formula = y ~ splines::bs(x), se = T) +
+  geom_smooth(aes(x = AGE, y = pred_SBP-ym1, color = "blue4", fill = "blue4"), alpha = 0.2, data = comb_dat %>% filter(SEX==1, AGE>=plot_x_min), method = lm, formula = y ~ splines::bs(x), se = T) +
   scale_color_manual(name = "Sex", values = c("red4"="red4", "blue4"="blue4"), labels = c("red4"="Women","blue4"="Men")) +
-  scale_y_continuous(name = "SBP [Male], mm Hg", sec.axis = sec_axis(~. - y_adj1, name = "SBP [Female], mm Hg")) + 
+  scale_fill_manual(name = "Sex", values = c("red4"="red4", "blue4"="blue4"), labels = c("red4"="Women","blue4"="Men")) +
+  scale_y_continuous(name = "SBP Elevation from Baseline, mm Hg") + 
   scale_x_continuous(breaks = seq(from = 20, to = 80, by = 10)) + 
-  # ggtitle("Systolic Blood Pressure") +
-  ggtitle("Baseline Adjusted SBP") +
+  ggtitle("SBP Elevation from Baseline") +
+  theme_bw() +
   theme(axis.title = element_text(color = "#434443",size =15,face="bold"),
         axis.text = element_text(color = "#434443",size =12,face="bold"),
         title = element_text(color = "#434443",size =16,face="bold"))
 
 
 # DBP
-comb_dat$pred_DBP <- predict(lmer(DBP ~ AGE + 
-                                    SEX + 
-                                    HRX +
-                                    cohort +
+comb_dat$pred_DBP <- predict(lmer(DBP ~ bs(AGE) +
                                     TP +
                                     (1|id), 
                                   data = comb_dat))
@@ -183,42 +177,40 @@ comb_dat$pred_DBP <- predict(lmer(DBP ~ AGE +
 group1_dbp <- ggplot(aes(x=AGE,y=pred_DBP),data= comb_dat %>% filter(SEX ==1, AGE>=plot_x_min)) + geom_smooth(method = lm, formula = y ~ splines::bs(x), se = T)
 group2_dbp <- ggplot(aes(x=AGE,y=pred_DBP),data= comb_dat %>% filter(SEX ==2, AGE>=plot_x_min)) + geom_smooth(method = lm, formula = y ~ splines::bs(x), se = T)
 
-y1<-as.data.frame(ggplot_build(group1_dbp)$data)$y[1]
-y2<-as.data.frame(ggplot_build(group2_dbp)$data)$y[1]
-y_adj2<-y1-y2
+ym2<-as.data.frame(ggplot_build(group1_dbp)$data)$y[1]
+yf2<-as.data.frame(ggplot_build(group2_dbp)$data)$y[1]
 
 base2 <- ggplot() +
   coord_cartesian(xlim = c(plot_x_min, plot_x_max)) +
-  geom_smooth(aes(x = AGE, y = pred_DBP, color = "red4"), data = comb_dat %>% filter(SEX==2, AGE>=plot_x_min), method = lm, formula = y ~ splines::bs(x), se = T) +
-  geom_smooth(aes(x = AGE, y = pred_DBP, color = "blue4"), data = comb_dat %>% filter(SEX==1, AGE>=plot_x_min), method = lm, formula = y ~ splines::bs(x), se = T) +
+  geom_smooth(aes(x = AGE, y = pred_DBP, color = "red4", fill = "red4"), alpha = 0.2, data = comb_dat %>% filter(SEX==2, AGE>=plot_x_min), method = lm, formula = y ~ splines::bs(x), se = T) +
+  geom_smooth(aes(x = AGE, y = pred_DBP, color = "blue4", fill = "blue4"), alpha = 0.2, data = comb_dat %>% filter(SEX==1, AGE>=plot_x_min), method = lm, formula = y ~ splines::bs(x), se = T) +
   scale_color_manual(name = "Sex", values = c("red4"="red4", "blue4"="blue4"), labels = c("red4"="Women","blue4"="Men")) +
+  scale_fill_manual(name = "Sex", values = c("red4"="red4", "blue4"="blue4"), labels = c("red4"="Women","blue4"="Men")) +
   scale_y_continuous(name = "DBP, mm Hg") + 
   scale_x_continuous(breaks = seq(from = 20, to = 80, by = 10)) + 
-  # ggtitle("Diastolic Blood Pressure") +
-  ggtitle("Unadjusted DBP") +
+  ggtitle("Diastolic Blood Pressure") +
+  theme_bw() +
   theme(axis.title = element_text(color = "#434443",size =15,face="bold"),
         axis.text = element_text(color = "#434443",size =12,face="bold"),
         title = element_text(color = "#434443",size =16,face="bold"))
 
 adj2 <- ggplot() +
   coord_cartesian(xlim = c(plot_x_min, plot_x_max)) +
-  geom_smooth(aes(x = AGE, y = pred_DBP + y_adj2, color = "red4"), data = comb_dat %>% filter(SEX==2, AGE>=plot_x_min), method = lm, formula = y ~ splines::bs(x), se = T) +
-  geom_smooth(aes(x = AGE, y = pred_DBP, color = "blue4"), data = comb_dat %>% filter(SEX==1, AGE>=plot_x_min), method = lm, formula = y ~ splines::bs(x), se = T) +
+  geom_smooth(aes(x = AGE, y = pred_DBP-yf2, color = "red4", fill = "red4"), alpha = 0.2, data = comb_dat %>% filter(SEX==2, AGE>=plot_x_min), method = lm, formula = y ~ splines::bs(x), se = T) +
+  geom_smooth(aes(x = AGE, y = pred_DBP-ym2, color = "blue4", fill = "blue4"), alpha = 0.2, data = comb_dat %>% filter(SEX==1, AGE>=plot_x_min), method = lm, formula = y ~ splines::bs(x), se = T) +
   scale_color_manual(name = "Sex", values = c("red4"="red4", "blue4"="blue4"), labels = c("red4"="Women","blue4"="Men")) +
-  scale_y_continuous(name = "DBP [Male], mm Hg", sec.axis = sec_axis(~. - y_adj2, name = "DBP [Female], mm Hg")) + 
+  scale_fill_manual(name = "Sex", values = c("red4"="red4", "blue4"="blue4"), labels = c("red4"="Women","blue4"="Men")) +
+  scale_y_continuous(name = "DBP Elevation from Baseline, mm Hg") + 
   scale_x_continuous(breaks = seq(from = 20, to = 80, by = 10)) + 
-  # ggtitle("Diastolic Blood Pressure") +
-  ggtitle("Baseline Adjusted DBP") +
+  ggtitle("DBP Elevation from Baseline") +
+  theme_bw() +
   theme(axis.title = element_text(color = "#434443",size =15,face="bold"),
         axis.text = element_text(color = "#434443",size =12,face="bold"),
         title = element_text(color = "#434443",size =16,face="bold"))
 
 
 # MAP
-comb_dat$pred_MAP <- predict(lmer(MAP ~ AGE + 
-                                    SEX + 
-                                    HRX +
-                                    cohort +
+comb_dat$pred_MAP <- predict(lmer(MAP ~ bs(AGE) + 
                                     TP +
                                     (1|id), 
                                   data = comb_dat))
@@ -226,32 +218,34 @@ comb_dat$pred_MAP <- predict(lmer(MAP ~ AGE +
 group1_map <- ggplot(aes(x=AGE,y=pred_MAP),data= comb_dat %>% filter(SEX ==1, AGE>=plot_x_min)) + geom_smooth(method = lm, formula = y ~ splines::bs(x), se = T)
 group2_map <- ggplot(aes(x=AGE,y=pred_MAP),data= comb_dat %>% filter(SEX ==2, AGE>=plot_x_min)) + geom_smooth(method = lm, formula = y ~ splines::bs(x), se = T)
 
-y1<-as.data.frame(ggplot_build(group1_map)$data)$y[1]
-y2<-as.data.frame(ggplot_build(group2_map)$data)$y[1]
-y_adj3<-y1-y2
+ym3<-as.data.frame(ggplot_build(group1_map)$data)$y[1]
+yf3<-as.data.frame(ggplot_build(group2_map)$data)$y[1]
+
 
 base3 <- ggplot() +
   coord_cartesian(xlim = c(plot_x_min, plot_x_max)) +
-  geom_smooth(aes(x = AGE, y = pred_MAP, color = "red4"), data = comb_dat %>% filter(SEX==2, AGE>=plot_x_min), method = lm, formula = y ~ splines::bs(x), se = T) +
-  geom_smooth(aes(x = AGE, y = pred_MAP, color = "blue4"), data = comb_dat %>% filter(SEX==1, AGE>=plot_x_min), method = lm, formula = y ~ splines::bs(x), se = T) +
+  geom_smooth(aes(x = AGE, y = pred_MAP, color = "red4", fill = "red4"), alpha = 0.2, data = comb_dat %>% filter(SEX==2, AGE>=plot_x_min), method = lm, formula = y ~ splines::bs(x), se = T) +
+  geom_smooth(aes(x = AGE, y = pred_MAP, color = "blue4", fill = "blue4"), alpha = 0.2, data = comb_dat %>% filter(SEX==1, AGE>=plot_x_min), method = lm, formula = y ~ splines::bs(x), se = T) +
   scale_color_manual(name = "Sex", values = c("red4"="red4", "blue4"="blue4"), labels = c("red4"="Women","blue4"="Men")) +
+  scale_fill_manual(name = "Sex", values = c("red4"="red4", "blue4"="blue4"), labels = c("red4"="Women","blue4"="Men")) +
   scale_y_continuous(name = "MAP, mm Hg") + 
   scale_x_continuous(breaks = seq(from = 20, to = 80, by = 10)) + 
-  # ggtitle("Mean Arterial Pressure") +
-  ggtitle("Unadjusted MAP") +
+  ggtitle("Mean Arterial Pressure") +
+  theme_bw() +
   theme(axis.title = element_text(color = "#434443",size =15,face="bold"),
         axis.text = element_text(color = "#434443",size =12,face="bold"),
         title = element_text(color = "#434443",size =16,face="bold"))
 
 adj3 <- ggplot() +
   coord_cartesian(xlim = c(plot_x_min, plot_x_max)) +
-  geom_smooth(aes(x = AGE, y = pred_MAP + y_adj3, color = "red4"), data = comb_dat %>% filter(SEX==2, AGE>=plot_x_min), method = lm, formula = y ~ splines::bs(x), se = T) +
-  geom_smooth(aes(x = AGE, y = pred_MAP, color = "blue4"), data = comb_dat %>% filter(SEX==1, AGE>=plot_x_min), method = lm, formula = y ~ splines::bs(x), se = T) +
+  geom_smooth(aes(x = AGE, y = pred_MAP-yf3, color = "red4", fill = "red4"), alpha = 0.2, data = comb_dat %>% filter(SEX==2, AGE>=plot_x_min), method = lm, formula = y ~ splines::bs(x), se = T) +
+  geom_smooth(aes(x = AGE, y = pred_MAP-ym3, color = "blue4", fill = "blue4"), alpha = 0.2, data = comb_dat %>% filter(SEX==1, AGE>=plot_x_min), method = lm, formula = y ~ splines::bs(x), se = T) +
   scale_color_manual(name = "Sex", values = c("red4"="red4", "blue4"="blue4"), labels = c("red4"="Women","blue4"="Men")) +
-  scale_y_continuous(name = "MAP [Male], mm Hg", sec.axis = sec_axis(~. - y_adj3, name = "MAP [Female], mm Hg")) + 
+  scale_fill_manual(name = "Sex", values = c("red4"="red4", "blue4"="blue4"), labels = c("red4"="Women","blue4"="Men")) +
+  scale_y_continuous(name = "MAP Elevation from Baseline, mm Hg") + 
   scale_x_continuous(breaks = seq(from = 20, to = 80, by = 10)) + 
-  # ggtitle("Mean Arterial Pressure") +
-  ggtitle("Baseline Adjusted MAP") +
+  ggtitle("MAP Elevation from Baseline") +
+  theme_bw() +
   theme(axis.title = element_text(color = "#434443",size =15,face="bold"),
         axis.text = element_text(color = "#434443",size =12,face="bold"),
         title = element_text(color = "#434443",size =16,face="bold"))
@@ -259,10 +253,7 @@ adj3 <- ggplot() +
 
 
 # PP
-comb_dat$pred_PP <- predict(lmer(PP ~ AGE + 
-                                   SEX + 
-                                   HRX +
-                                   cohort +
+comb_dat$pred_PP <- predict(lmer(PP ~ bs(AGE) + 
                                    TP +
                                    (1|id), 
                                  data = comb_dat))
@@ -271,32 +262,33 @@ comb_dat$pred_PP <- predict(lmer(PP ~ AGE +
 group1_pp <- ggplot(aes(x=AGE,y=pred_PP),data= comb_dat %>% filter(SEX ==1, AGE>=plot_x_min)) + geom_smooth(method = lm, formula = y ~ splines::bs(x), se = T)
 group2_pp <- ggplot(aes(x=AGE,y=pred_PP),data= comb_dat %>% filter(SEX ==2, AGE>=plot_x_min)) + geom_smooth(method = lm, formula = y ~ splines::bs(x), se = T)
 
-y1<-as.data.frame(ggplot_build(group1_pp)$data)$y[1]
-y2<-as.data.frame(ggplot_build(group2_pp)$data)$y[1]
-y_adj4<-y1-y2
+ym4<-as.data.frame(ggplot_build(group1_pp)$data)$y[1]
+yf4<-as.data.frame(ggplot_build(group2_pp)$data)$y[1]
 
 base4 <- ggplot() +
   coord_cartesian(xlim = c(plot_x_min, plot_x_max)) +
-  geom_smooth(aes(x = AGE, y = pred_PP, color = "red4"), data = comb_dat %>% filter(SEX==2, AGE>=plot_x_min), method = lm, formula = y ~ splines::bs(x), se = T) +
-  geom_smooth(aes(x = AGE, y = pred_PP, color = "blue4"), data = comb_dat %>% filter(SEX==1, AGE>=plot_x_min), method = lm, formula = y ~ splines::bs(x), se = T) +
+  geom_smooth(aes(x = AGE, y = pred_PP, color = "red4", fill = "red4"), alpha = 0.2, data = comb_dat %>% filter(SEX==2, AGE>=plot_x_min), method = lm, formula = y ~ splines::bs(x), se = T) +
+  geom_smooth(aes(x = AGE, y = pred_PP, color = "blue4", fill = "blue4"), alpha = 0.2, data = comb_dat %>% filter(SEX==1, AGE>=plot_x_min), method = lm, formula = y ~ splines::bs(x), se = T) +
   scale_color_manual(name = "Sex", values = c("red4"="red4", "blue4"="blue4"), labels = c("red4"="Women","blue4"="Men")) +
+  scale_fill_manual(name = "Sex", values = c("red4"="red4", "blue4"="blue4"), labels = c("red4"="Women","blue4"="Men")) +
   scale_y_continuous(name = "PP, mm Hg") + 
   scale_x_continuous(breaks = seq(from = 20, to = 80, by = 10)) + 
-  # ggtitle("Pulse Pressure") +
-  ggtitle("Unadjusted PP") +
+  ggtitle("Pulse Pressure") +
+  theme_bw() +
   theme(axis.title = element_text(color = "#434443",size =15,face="bold"),
         axis.text = element_text(color = "#434443",size =12,face="bold"),
         title = element_text(color = "#434443",size =16,face="bold"))
 
 adj4 <- ggplot() +
   coord_cartesian(xlim = c(plot_x_min, plot_x_max)) +
-  geom_smooth(aes(x = AGE, y = pred_PP + y_adj4, color = "red4"), data = comb_dat %>% filter(SEX==2, AGE>=plot_x_min), method = lm, formula = y ~ splines::bs(x), se = T) +
-  geom_smooth(aes(x = AGE, y = pred_PP, color = "blue4"), data = comb_dat %>% filter(SEX==1, AGE>=plot_x_min), method = lm, formula = y ~ splines::bs(x), se = T) +
+  geom_smooth(aes(x = AGE, y = pred_PP-yf4, color = "red4", fill = "red4"), alpha = 0.2, data = comb_dat %>% filter(SEX==2, AGE>=plot_x_min), method = lm, formula = y ~ splines::bs(x), se = T) +
+  geom_smooth(aes(x = AGE, y = pred_PP-ym4, color = "blue4", fill = "blue4"), alpha = 0.2, data = comb_dat %>% filter(SEX==1, AGE>=plot_x_min), method = lm, formula = y ~ splines::bs(x), se = T) +
   scale_color_manual(name = "Sex", values = c("red4"="red4", "blue4"="blue4"), labels = c("red4"="Women","blue4"="Men")) +
-  scale_y_continuous(name = "PP [Male], mm Hg", sec.axis = sec_axis(~. - y_adj4, name = "PP [Female], mm Hg")) + 
+  scale_fill_manual(name = "Sex", values = c("red4"="red4", "blue4"="blue4"), labels = c("red4"="Women","blue4"="Men")) +
+  scale_y_continuous(name = "PP Elevation from Baseline, mm Hg") + 
   scale_x_continuous(breaks = seq(from = 20, to = 80, by = 10)) + 
-  # ggtitle("Pulse Pressure") +
-  ggtitle("Baseline Adjusted PP") +
+  ggtitle("PP Elevation from Baseline") +
+  theme_bw() +
   theme(axis.title = element_text(color = "#434443",size =15,face="bold"),
         axis.text = element_text(color = "#434443",size =12,face="bold"),
         title = element_text(color = "#434443",size =16,face="bold"))
@@ -329,5 +321,29 @@ adj3
 adj4
 
 
+lrt_sbp <- anova(
+  lmer(SBP ~ bs(AGE) + SEX + TP + (1|id), data = comb_dat),
+  lmer(SBP ~ bs(AGE) + SEX + bs(AGE)*SEX + TP + (1|id), data = comb_dat),
+  test = "LRT"
+)
 
-  
+lrt_dbp <- anova(
+  lmer(DBP ~ bs(AGE) + SEX + TP + (1|id), data = comb_dat),
+  lmer(DBP ~ bs(AGE) + SEX + bs(AGE)*SEX + TP + (1|id), data = comb_dat),
+  test = "LRT"
+)
+
+lrt_map <- anova(
+  lmer(MAP ~ bs(AGE) + SEX + TP + (1|id), data = comb_dat),
+  lmer(MAP ~ bs(AGE) + SEX + bs(AGE)*SEX + TP + (1|id), data = comb_dat),
+  test = "LRT"
+)
+
+lrt_pp <- anova(
+  lmer(PP ~ bs(AGE) + SEX + TP + (1|id), data = comb_dat),
+  lmer(PP ~ bs(AGE) + SEX + bs(AGE)*SEX + TP + (1|id), data = comb_dat),
+  test = "LRT"
+)
+
+
+

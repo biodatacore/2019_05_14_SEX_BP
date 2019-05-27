@@ -99,10 +99,13 @@ comb_dat <- rbind(cardia, fhs, MESA_ALT, ARIC_comb) %>%
          DBP = ifelse(HRX==1, DBP + 5 , DBP),
          PP = SBP - DBP,
          MAP = DBP + 1/3*PP,
-         AGE = round(AGE))
+         AGE = round(AGE),
+         TP = as.factor(TP),
+         id = as.numeric(as.factor(id)))
 
 saveRDS(comb_dat, "data/comb_dat.rds")
 
+write_dta(comb_dat, "data/comb_dat.dta")
 # fhs[,"id"] %>% unique() %>% nrow()
 # ARIC_comb[,"id"] %>% unique() %>% nrow()
 # cardia[which(cardia$TP=="cardia0"),]
@@ -129,17 +132,21 @@ library(bootpredictlme4) # devtools::install_github("remkoduursma/bootpredictlme
 # get cental 99% range of age
 
 plot_x_min <- max(c(quantile(comb_dat[which(comb_dat$SEX==1),]$AGE, 0.005,na.rm = T),quantile(comb_dat[which(comb_dat$SEX==2),]$AGE, 0.005,na.rm = T)))
-
 plot_x_max <- min(c(quantile(comb_dat[which(comb_dat$SEX==1),]$AGE, 0.995,na.rm = T),quantile(comb_dat[which(comb_dat$SEX==2),]$AGE, 0.995,na.rm = T)))
 
 
 # SBP
+m <- comb_dat %>% filter(SEX==1)
+f <- comb_dat %>% filter(SEX==2)
 
-modm1 <- lmer(SBP ~ bs(AGE,3) + TP + (1|id), data = comb_dat %>% filter(SEX==1))
-modf1 <- lmer(SBP ~ bs(AGE,3) + TP + (1|id), data = comb_dat %>% filter(SEX==2))
+modm1 <- lmer(SBP ~ rcspline.eval(AGE, nk = 5) + (1|id), data = m)
+modf1 <- lmer(SBP ~ rcspline.eval(AGE, nk = 5) + (1|id), data = f)
 
-boot_m1 <- predict(modm1, newdata = datm1, re.form=NA, se.fit=TRUE, nsim=100)
-boot_f1 <- predict(modf1, newdata = datf1, re.form=NA, se.fit=TRUE, nsim=100)
+datm1 <- data.frame(AGE = plot_x_min:plot_x_max, id = mean(m$id))
+datf1 <- data.frame(AGE = plot_x_min:plot_x_max, id = mean(f$id))
+
+boot_m1 <- predict(modm1, newdata = datm1, re.form=NA, se.fit=TRUE, nsim=10)
+boot_f1 <- predict(modf1, newdata = datf1, re.form=NA, se.fit=TRUE, nsim=10)
 
 fit_m1 <- data.frame(AGE = datm1$AGE,
                     fit = boot_m1$fit,
@@ -167,7 +174,6 @@ base1 <- ggplot() +
   scale_y_continuous(name = "SBP, mm Hg") + 
   scale_x_continuous(breaks = seq(from = 20, to = 80, by = 10)) + 
   ggtitle("Systolic Blood Pressure") +
-  # ggtitle("Unadjusted SBP") +
   theme_bw() +
   theme(axis.title = element_text(color = "#434443",size =15,face="bold"),
         axis.text = element_text(color = "#434443",size =12,face="bold"),
