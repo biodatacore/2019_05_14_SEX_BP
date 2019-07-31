@@ -15,9 +15,10 @@ library(boot)
 
 comb_dat <- readRDS("data/comb_dat.rds") %>% filter(SEX==2)
 comb_dat %<>% mutate(AGE = round(AGE),
+                     pid = id,
                      id = as.numeric(id))
 head(comb_dat)
-# Filter out those who were under 18 at baseline --------------------------
+# Filter out those who were under 18 or HTN at baseline --------------------------
 
 u1850 <-
   comb_dat %>%
@@ -29,17 +30,11 @@ baselinehtn <-
   comb_dat %>%
   filter(visit == 1) %>% 
   distinct(HRX, SBP, DBP, AGE, id) %>%
-  filter((HRX == 1 | SBP > 140 | DBP > 90) & AGE > 45)
+  filter((HRX == 1 | SBP >= 140 | DBP >= 90))
 
-num_visit <-
-  comb_dat %>%
-  group_by(id) %>%
-  dplyr::summarise(n = n()) %>%
-  filter(n < 4)
 
 comb_dat %<>%
   anti_join(u1850, by = 'id')%>%
-  anti_join(num_visit, by = 'id') %>%
   anti_join(baselinehtn, by = 'id') 
 
 
@@ -161,11 +156,21 @@ age_category_sizes <- map(age_category_names, function(category) {
 
 comb_dat %<>%
   left_join(age_categories, by = "id") %>% # diag_age
-  filter(onsetage < 75 | is.na(onsetage))
+  filter(onsetage <= 75 | is.na(onsetage)) %>%
+  filter(AGE <= onsetage | is.na(onsetage))
+
+num_visit <-
+  comb_dat %>%
+  group_by(id) %>%
+  dplyr::summarise(n = n()) %>%
+  filter(n < 2)
+
+comb_dat %<>%
+  anti_join(num_visit, by = 'id')
 
 head(comb_dat)
 
-saveRDS(comb_dat, "comb_dat_f.rds")
+saveRDS(comb_dat, "data/comb_dat_f.rds")
 
 
 line1 <- comb_dat %>% 
@@ -231,14 +236,15 @@ slope_ci <- function(seglm) {
   #asymptotic 95%CI for the left and right slopes
   b <- fixef(seglm[[2]])[c("AGE", "U")] #model estimates, left slope and diffSlope
   A <- matrix(c(1,1,0,1),2,byrow=FALSE)
+  N <- (seg_model(d)[[2]])$dims$N
   
-  new<- drop(A%*%b) #left slope and right slopes
+  new <- drop(A%*%b) #left slope and right slopes
   V <- vcov(seglm[[1]])[c("AGE", "U"), c("AGE", "U")]
-  V.new<- A %*% V %*% t(A)
-  se.new<-sqrt(diag(V.new))
-
+  V.new <- A %*% V %*% t(A)
+  se.new <- sqrt(diag(V.new))
+  
   out <- 
-    cbind(low=new -1.96*se.new, up=new +1.96*se.new) %>%
+    cbind(low = new -1.96*se.new, up = new +1.96*se.new, n = N) %>%
     as.data.frame(row.names = c('before_breakpoint', 'after_breakpoint')) %>%
     tibble::rownames_to_column(var = "slope")
   
@@ -248,28 +254,29 @@ slope_ci <- function(seglm) {
 
 
 
-d <- line1 %>% filter(AGE < 45) -> d1
+
+d <- line1 -> d1
 lmefit1 <- seg_model(d)$lme.fit %>% summary()
 fitci1 <- slope_ci(seg_model(d)) %>% mutate(group = 1)
 int1 <- summary(seg_model(d)$lme.fit)$tTable
 int1 %<>% as.data.frame() %>% mutate(term = rownames(.), group = 1) %>% filter(term == "G0")
 cl1 <- changeline(lmefit1)
 
-d <- line2 %>% filter(AGE < 55) -> d2
+d <- line2 -> d2
 lmefit2 <- seg_model(d)$lme.fit %>% summary()
 fitci2 <- slope_ci(seg_model(d)) %>% mutate(group = 2)
 int2 <- summary(seg_model(d)$lme.fit)$tTable
 int2 %<>% as.data.frame() %>% mutate(term = rownames(.), group = 2) %>% filter(term == "G0")
 cl2 <- changeline(lmefit2) 
 
-d <- line3 %>% filter(AGE < 65) -> d3
+d <- line3 -> d3
 lmefit3 <- seg_model(d)$lme.fit %>% summary()
 fitci3 <- slope_ci(seg_model(d)) %>% mutate(group = 3)
 int3 <- summary(seg_model(d)$lme.fit)$tTable
 int3 %<>% as.data.frame() %>% mutate(term = rownames(.), group = 3) %>% filter(term == "G0")
 cl3 <- changeline(lmefit3) 
 
-d <- line4 %>% filter(AGE <= 75) -> d4
+d <- line4 -> d4
 lmefit4 <- seg_model(d)$lme.fit %>% summary()
 fitci4 <- slope_ci(seg_model(d)) %>% mutate(group = 4)
 int4 <- summary(seg_model(d)$lme.fit)$tTable
@@ -297,8 +304,8 @@ n = 8
 cols = gg_color_hue(n)
 
 ggplot() +
-  coord_cartesian(ylim = c(105, 145), xlim = c(25, 85)) +
-  geom_smooth(aes(x = AGE, y = SBP, color = "40s", fill = "40s"), linetype = "dotted", method = "loess", data = d1, show.legend = F) +
+  coord_cartesian(ylim = c(100, 150), xlim = c(25, 85)) +
+  geom_smooth(aes(x = AGE, y = SBP, color = "40s", fill = "40s"), linetype = "dotted", method = "loess",data = d1, show.legend = F) +
   geom_smooth(aes(x = AGE, y = SBP, color = "50s", fill = "50s"), linetype = "dotted", method = "loess", data = d2, show.legend = F) +
   geom_smooth(aes(x = AGE, y = SBP, color = "60s", fill = "60s"), linetype = "dotted", method = "loess", data = d3, show.legend = F) +
   geom_smooth(aes(x = AGE, y = SBP, color = "70s", fill = "70s"), linetype = "dotted", method = "loess", data = d4, show.legend = F) +
@@ -308,19 +315,23 @@ ggplot() +
   geom_line(aes(x = x, y = y, color = "60s"), data = cl3) +
   geom_line(aes(x = x, y = y, color = "70s"), data = cl4) +
   geom_line(aes(x = x, y = y, color = "never"), data = cl5, alpha = 0) +
-  scale_color_manual(name = "Age at Hypertension Onset",
+  scale_color_manual(name = "Age at HTN Onset",
                      values = c("40s" = "blue4", "50s" = cols[2], "60s" = cols[6], "70s" = cols[1], "never" = cols[4]),
                      labels = c("40s" = "~ 44", "50s" = "45-54", "60s" = "55-64", "70s" = "65-75", "never" = "No onset")) +
-  scale_fill_manual(name = "Age at Hypertension Onset",
+  scale_fill_manual(name = "Age at HTN Onset",
                      values = c("40s" = "blue4", "50s" = cols[2], "60s" = cols[6], "70s" = cols[1], "never" = cols[4]),
                      labels = c("40s" = "~ 44", "50s" = "45-54", "60s" = "55-64", "70s" = "65-75", "never" = "No onset")) +
   scale_y_continuous(name = "SBP, mm Hg", expand = c(0,0)) + 
   scale_x_continuous(breaks = seq(from = 20, to = 90, by = 10), expand = c(0,0)) + 
   ggtitle("Women") +
   theme_bw() +
-  theme(axis.title = element_text(color = "#434443",size =15,face="bold"),
+  theme(title = element_text(color = "#434443",size =15,face="bold"),
         axis.text = element_text(color = "#434443",size =12,face="bold"),
-        title = element_text(color = "#434443",size =16,face="bold"),
-        legend.position = "bottom")
+        legend.position = "bottom",
+        legend.title = element_text(color = "#434443",size =10,face="bold"),
+        legend.text = element_text(color = "#434443",size =10,face="bold")) 
 
-
+saveRDS(cl1,"data/cl1_f.rds")
+saveRDS(cl2,"data/cl2_f.rds")
+saveRDS(cl3,"data/cl3_f.rds")
+saveRDS(cl4,"data/cl4_f.rds")

@@ -1,6 +1,6 @@
 library(reshape2)
 library(data.table) # v1.9.5+
-library(matrixStats)
+library(matrixStats) 
 library(magrittr)
 library(testthat) # install.packages("testthat")
 library(readr)
@@ -15,9 +15,10 @@ library(boot)
 
 comb_dat <- readRDS("data/comb_dat.rds") %>% filter(SEX==1)
 comb_dat %<>% mutate(AGE = round(AGE),
+                     pid = id,
                      id = as.numeric(id))
 head(comb_dat)
-# Filter out those who were under 18 at baseline --------------------------
+# Filter out those who were under 18 or HTN at baseline --------------------------
 
 u1850 <-
   comb_dat %>%
@@ -29,17 +30,11 @@ baselinehtn <-
   comb_dat %>%
   filter(visit == 1) %>% 
   distinct(HRX, SBP, DBP, AGE, id) %>%
-  filter((HRX == 1 | SBP > 140 | DBP > 90) & AGE > 45)
+  filter((HRX == 1 | SBP >= 140 | DBP >= 90))
 
-num_visit <-
-  comb_dat %>%
-  group_by(id) %>%
-  dplyr::summarise(n = n()) %>%
-  filter(n < 4)
 
 comb_dat %<>%
   anti_join(u1850, by = 'id')%>%
-  anti_join(num_visit, by = 'id') %>%
   anti_join(baselinehtn, by = 'id') 
 
 
@@ -117,6 +112,8 @@ age_categories <-
     category_3       = multi_ifelse(onsetage, age_breaks[[3]])
   )
 
+sum(age_categories$category_3=="0")
+
 na_id <-
   onset_NA %>%
   distinct(id)
@@ -159,11 +156,21 @@ age_category_sizes <- map(age_category_names, function(category) {
 
 comb_dat %<>%
   left_join(age_categories, by = "id") %>% # diag_age
-  filter(onsetage < 75 | is.na(onsetage))
+  filter(onsetage <= 75 | is.na(onsetage)) %>%
+  filter(AGE <= onsetage | is.na(onsetage))
+
+num_visit <-
+  comb_dat %>%
+  group_by(id) %>%
+  dplyr::summarise(n = n()) %>%
+  filter(n < 2)
+
+comb_dat %<>%
+  anti_join(num_visit, by = 'id')
 
 head(comb_dat)
 
-saveRDS(comb_dat, "comb_dat_f.rds")
+saveRDS(comb_dat, "data/comb_dat_m.rds")
 
 
 line1 <- comb_dat %>% 
@@ -171,14 +178,13 @@ line1 <- comb_dat %>%
 line2 <- comb_dat %>% 
   filter(category_3 == 2) 
 line3 <- comb_dat %>% 
-  filter(category_3 == 3) 
+  filter(category_3 == 3)
 line4 <- comb_dat %>% 
-  filter(category_3 == 4) 
+  filter(category_3 == 4)
 line5 <- comb_dat %>% 
   filter(category_3 == "NO_HTN") 
 
 comb_dat$category_3 %>% as.factor() %>% summary()
-
 # Model Function ----------------------------------------------------------
 
 ctrl <- lmeControl(opt = 'optim')
@@ -193,51 +199,52 @@ seg_model <- function(d) {
     ),
     Z = AGE,
     random = list(id = pdDiag(~ 1)))
-  }
+}
 
 # Segmented models --------------------------------------------------------
 
 changeline <- function(x) {
-              minx <- min(range(x$data$AGE))
-              maxx <- max(range(x$data$AGE))
-              
-              plot_min <- minx + 0.05*(maxx - minx)
-              plot_max <- maxx - 0.05*(maxx - minx)
-              
-              x <- x$tTable
-              rnames <- rownames(x)
-              
-              estimates = x[, 1]
-              int = estimates[rnames == '(Intercept)']
-              slope = estimates[rnames == 'AGE']
-              deltaSlope = estimates[rnames == 'U']
-              changepoint = estimates[rnames == 'G0']
-              
-              newX1 = seq(plot_min, changepoint, length.out = 2)
-              newX2 = seq(changepoint, plot_max, length.out = 2)
-              
-              
-              newY1 = int + newX1 * slope
-              newY2 = max(newY1) + (newX2 - changepoint) * (slope + deltaSlope)
-              
-              return(data_frame(
-                x = unique(c(newX1, newX2)),
-                y = unique(c(newY1, newY2))
-              ))}
+  minx <- min(range(x$data$AGE))
+  maxx <- max(range(x$data$AGE))
+  
+  plot_min <- minx + 0.05*(maxx - minx)
+  plot_max <- maxx - 0.05*(maxx - minx)
+  
+  x <- x$tTable
+  rnames <- rownames(x)
+  
+  estimates = x[, 1]
+  int = estimates[rnames == '(Intercept)']
+  slope = estimates[rnames == 'AGE']
+  deltaSlope = estimates[rnames == 'U']
+  changepoint = estimates[rnames == 'G0']
+  
+  newX1 = seq(plot_min, changepoint, length.out = 2)
+  newX2 = seq(changepoint, plot_max, length.out = 2)
+  
+  
+  newY1 = int + newX1 * slope
+  newY2 = max(newY1) + (newX2 - changepoint) * (slope + deltaSlope)
+  
+  return(data_frame(
+    x = unique(c(newX1, newX2)),
+    y = unique(c(newY1, newY2))
+  ))}
 
 
 slope_ci <- function(seglm) {
   #asymptotic 95%CI for the left and right slopes
   b <- fixef(seglm[[2]])[c("AGE", "U")] #model estimates, left slope and diffSlope
   A <- matrix(c(1,1,0,1),2,byrow=FALSE)
+  N <- (seg_model(d)[[2]])$dims$N
   
-  new<- drop(A%*%b) #left slope and right slopes
-  V<-vcov(seglm[[1]])[c("AGE", "U"), c("AGE", "U")]
-  V.new<- A %*% V %*% t(A)
-  se.new<-sqrt(diag(V.new))
-
+  new <- drop(A%*%b) #left slope and right slopes
+  V <- vcov(seglm[[1]])[c("AGE", "U"), c("AGE", "U")]
+  V.new <- A %*% V %*% t(A)
+  se.new <- sqrt(diag(V.new))
+  
   out <- 
-    cbind(low=new -1.96*se.new, up=new +1.96*se.new) %>%
+    cbind(low = new -1.96*se.new, up = new +1.96*se.new, n = N) %>%
     as.data.frame(row.names = c('before_breakpoint', 'after_breakpoint')) %>%
     tibble::rownames_to_column(var = "slope")
   
@@ -245,28 +252,31 @@ slope_ci <- function(seglm) {
     bind_cols(data_frame(est = new, se = se.new))
 }
 
-d <- line1 %>% filter(AGE < 45) -> d1
+
+
+
+d <- line1 -> d1
 lmefit1 <- seg_model(d)$lme.fit %>% summary()
 fitci1 <- slope_ci(seg_model(d)) %>% mutate(group = 1)
 int1 <- summary(seg_model(d)$lme.fit)$tTable
 int1 %<>% as.data.frame() %>% mutate(term = rownames(.), group = 1) %>% filter(term == "G0")
 cl1 <- changeline(lmefit1)
 
-d <- line2 %>% filter(AGE < 55) -> d2
+d <- line2 -> d2
 lmefit2 <- seg_model(d)$lme.fit %>% summary()
 fitci2 <- slope_ci(seg_model(d)) %>% mutate(group = 2)
 int2 <- summary(seg_model(d)$lme.fit)$tTable
 int2 %<>% as.data.frame() %>% mutate(term = rownames(.), group = 2) %>% filter(term == "G0")
 cl2 <- changeline(lmefit2) 
 
-d <- line3 %>% filter(AGE < 65) -> d3
+d <- line3 -> d3
 lmefit3 <- seg_model(d)$lme.fit %>% summary()
 fitci3 <- slope_ci(seg_model(d)) %>% mutate(group = 3)
 int3 <- summary(seg_model(d)$lme.fit)$tTable
 int3 %<>% as.data.frame() %>% mutate(term = rownames(.), group = 3) %>% filter(term == "G0")
 cl3 <- changeline(lmefit3) 
 
-d <- line4 %>% filter(AGE <= 75) -> d4
+d <- line4 -> d4
 lmefit4 <- seg_model(d)$lme.fit %>% summary()
 fitci4 <- slope_ci(seg_model(d)) %>% mutate(group = 4)
 int4 <- summary(seg_model(d)$lme.fit)$tTable
@@ -283,7 +293,6 @@ pointci_m <- rbind(int1,int2,int3,int4)
 saveRDS(pointci_m, "data/pointci_m.rds")
 
 
-
 library(splines)
 library(lspline) # install.packages("lspline")
 
@@ -294,8 +303,9 @@ gg_color_hue <- function(n) {
 n = 8
 cols = gg_color_hue(n)
 
+
 ggplot() +
-  coord_cartesian(ylim = c(105, 145), xlim = c(25, 85)) +
+  coord_cartesian(ylim = c(100, 150), xlim = c(25, 85)) +
   geom_smooth(aes(x = AGE, y = SBP, color = "40s", fill = "40s"), linetype = "dotted", method = "loess", data = d1, show.legend = F) +
   geom_smooth(aes(x = AGE, y = SBP, color = "50s", fill = "50s"), linetype = "dotted", method = "loess", data = d2, show.legend = F) +
   geom_smooth(aes(x = AGE, y = SBP, color = "60s", fill = "60s"), linetype = "dotted", method = "loess", data = d3, show.legend = F) +
@@ -306,19 +316,156 @@ ggplot() +
   geom_line(aes(x = x, y = y, color = "60s"), data = cl3) +
   geom_line(aes(x = x, y = y, color = "70s"), data = cl4) +
   geom_line(aes(x = x, y = y, color = "never"), data = cl5, alpha = 0) +
-  scale_color_manual(name = "Age at Hypertension Onset",
+  scale_color_manual(name = "Age at HTN Onset",
                      values = c("40s" = "blue4", "50s" = cols[2], "60s" = cols[6], "70s" = cols[1], "never" = cols[4]),
                      labels = c("40s" = "~ 44", "50s" = "45-54", "60s" = "55-64", "70s" = "65-75", "never" = "No onset")) +
-  scale_fill_manual(name = "Age at Hypertension Onset",
+  scale_fill_manual(name = "Age at HTN Onset",
                      values = c("40s" = "blue4", "50s" = cols[2], "60s" = cols[6], "70s" = cols[1], "never" = cols[4]),
                      labels = c("40s" = "~ 44", "50s" = "45-54", "60s" = "55-64", "70s" = "65-75", "never" = "No onset")) +
   scale_y_continuous(name = "SBP, mm Hg", expand = c(0,0)) + 
   scale_x_continuous(breaks = seq(from = 20, to = 90, by = 10), expand = c(0,0)) + 
   ggtitle("Men") +
   theme_bw() +
-  theme(axis.title = element_text(color = "#434443",size =15,face="bold"),
+  theme(title = element_text(color = "#434443",size =15,face="bold"),
         axis.text = element_text(color = "#434443",size =12,face="bold"),
-        title = element_text(color = "#434443",size =16,face="bold"),
-        legend.position = "bottom")
+        legend.position = "bottom",
+        legend.title = element_text(color = "#434443",size =10,face="bold"),
+        legend.text = element_text(color = "#434443",size =10,face="bold")) 
+
+saveRDS(cl1,"data/cl1_m.rds")
+saveRDS(cl2,"data/cl2_m.rds")
+saveRDS(cl3,"data/cl3_m.rds")
+saveRDS(cl4,"data/cl4_m.rds")
+
+
+cl1_m <- readRDS("data/cl1_m.rds")
+cl2_m <- readRDS("data/cl2_m.rds")
+cl3_m <- readRDS("data/cl3_m.rds")
+cl4_m <- readRDS("data/cl4_m.rds")
+
+cl1_f <- readRDS("data/cl1_f.rds")
+cl2_f <- readRDS("data/cl2_f.rds")
+cl3_f <- readRDS("data/cl3_f.rds")
+cl4_f <- readRDS("data/cl4_f.rds")
+
+
+
+p1 <- ggplot() +
+  coord_cartesian(ylim = c(100, 150), xlim = c(25, 45)) +
+  geom_line(aes(x = x, y = y, color = "m"), data = cl1_m, size =1, show.legend = F) +
+  geom_line(aes(x = x, y = y, color = "f"), data = cl1_f, linetype = "dotdash", size =1, show.legend = F) +
+  scale_color_manual(name = "Sex",
+                     values = c("m" = "skyblue3", "f" = "#c55a4a"),
+                     labels = c("m" = "Men", "f" = "Women")) +
+  scale_fill_manual(name = "Sex",
+                    values = c("m" = "skyblue3", "f" = "#c55a4a"),
+                    labels = c("m" = "Men", "f" = "Women")) +
+  scale_y_continuous(name = "SBP, mm Hg", expand = c(0,0)) + 
+  scale_x_continuous(name = "HTN onset <45y", breaks = seq(from = 20, to = 90, by = 10), expand = c(0,0)) + 
+  # ggtitle("Age at HTN onset ~44") +
+  theme_bw() +
+  theme(axis.title.y = element_text(color = "#434443",size =13,face="bold"),
+    axis.title.x = element_text(color = "#434443",size =10,face="bold"),
+        axis.text = element_text(color = "#434443",size =12,face="bold"),
+        legend.position = "bottom",
+        legend.title = element_text(color = "#434443",size =10,face="bold"),
+        legend.text = element_text(color = "#434443",size =10,face="bold")) 
+
+
+p2 <- ggplot() +
+  coord_cartesian(ylim = c(100, 150), xlim = c(25, 55)) +
+  geom_line(aes(x = x, y = y, color = "m"), data = cl2_m, size =1, show.legend = F) +
+  geom_line(aes(x = x, y = y, color = "f"), data = cl2_f, linetype = "dotdash", size =1, show.legend = F) +
+  scale_color_manual(name = "Sex",
+                     values = c("m" = "skyblue3", "f" = "#c55a4a"),
+                     labels = c("m" = "Men", "f" = "Women")) +
+  scale_fill_manual(name = "Sex",
+                    values = c("m" = "skyblue3", "f" = "#c55a4a"),
+                    labels = c("m" = "Men", "f" = "Women")) +
+  scale_y_continuous(name = "SBP, mm Hg", expand = c(0,0)) + 
+  scale_x_continuous(name = "HTN onset 45-54y", breaks = seq(from = 20, to = 90, by = 10), expand = c(0,0)) + 
+  # ggtitle("Age at HTN onset 45-54") +
+  theme_bw() +
+  theme(axis.title.x = element_text(color = "#434443",size =10,face="bold"),
+        axis.text.x = element_text(color = "#434443",size =12,face="bold"),
+        axis.text.y = element_blank(),
+        axis.title.y = element_blank(),
+        legend.position = "bottom",
+        legend.title = element_text(color = "#434443",size =10,face="bold"),
+        legend.text = element_text(color = "#434443",size =10,face="bold")) 
+
+
+p3 <- ggplot() +
+  coord_cartesian(ylim = c(100, 150), xlim = c(25, 65)) +
+  geom_line(aes(x = x, y = y, color = "m"), data = cl3_m, size =1, show.legend = F) +
+  geom_line(aes(x = x, y = y, color = "f"), data = cl3_f, linetype = "dotdash", size =1, show.legend = F) +
+  scale_color_manual(name = "Sex",
+                     values = c("m" = "skyblue3", "f" = "#c55a4a"),
+                     labels = c("m" = "Men", "f" = "Women")) +
+  scale_fill_manual(name = "Sex",
+                    values = c("m" = "skyblue3", "f" = "#c55a4a"),
+                    labels = c("m" = "Men", "f" = "Women")) +
+  scale_y_continuous(name = "SBP, mm Hg", expand = c(0,0)) + 
+  scale_x_continuous(name = "HTN onset 55-64y", breaks = seq(from = 20, to = 90, by = 10), expand = c(0,0)) + 
+  # ggtitle("Age at HTN onset 55-64") +
+  theme_bw() +
+  theme(axis.title.x = element_text(color = "#434443",size =10,face="bold"),
+        axis.text.x = element_text(color = "#434443",size =12,face="bold"),
+        axis.text.y = element_blank(),
+        axis.title.y = element_blank(),
+        legend.position = "bottom",
+        legend.title = element_text(color = "#434443",size =10,face="bold"),
+        legend.text = element_text(color = "#434443",size =10,face="bold")) 
+
+
+p4 <- ggplot() +
+  coord_cartesian(ylim = c(100, 150), xlim = c(25, 75)) +
+  geom_line(aes(x = x, y = y, color = "m"), data = cl4_m, size =1) +
+  geom_line(aes(x = x, y = y, color = "f"), data = cl4_f, linetype = "dotdash", size =1) +
+  scale_color_manual(name = "Sex",
+                     values = c("m" = "skyblue3", "f" = "#c55a4a"),
+                     labels = c("m" = "Men", "f" = "Women")) +
+  scale_fill_manual(name = "Sex",
+                    values = c("m" = "skyblue3", "f" = "#c55a4a"),
+                    labels = c("m" = "Men", "f" = "Women")) +
+  scale_y_continuous(name = "SBP, mm Hg", expand = c(0,0)) + 
+  scale_x_continuous(name = "HTN onset 65-75y", breaks = seq(from = 20, to = 90, by = 10), expand = c(0,0)) + 
+  # ggtitle("Age at HTN onset 65-75") +
+  theme_bw() +
+  theme(
+        axis.title.x = element_text(color = "#434443",size =10,face="bold"),
+        axis.text.x = element_text(color = "#434443",size =12,face="bold"),
+        axis.text.y = element_blank(),
+        axis.title.y = element_blank(),
+        legend.position = c(0.2,0.85),
+        legend.title = element_text(color = "#434443",size =10,face="bold"),
+        legend.text = element_text(color = "#434443",size =10,face="bold")) 
+
+
+
+
+library(gridExtra)
+
+par(mai=c(0,0,0,0),xaxs="i",yaxs="i")
+
+grid.arrange(
+  p1,
+  p2,
+  p3,
+  p4,
+  # grobs = gl,
+  widths = c(4, 4, 5, 6),
+  layout_matrix = rbind(c(1, 2, 3,4))
+)
+
+
+
+
+
+
+
+
+
+
 
 

@@ -9,6 +9,9 @@ point <- cbind(point_f, point_m) %>%
          point_m = paste(sprintf("%.3f",p_m),"(",sprintf("%.3f",p_m - 1.96*se_m),",",sprintf("%.3f",p_m + 1.96*se_m),")", sep = ""),
 
          point_z = (p_f-p_m)/(se_f^2 + se_m^2)^0.5,
+         dif = p_f-p_m,
+         se = (se_f^2 + se_m^2)^0.5,
+         difci = paste(sprintf("%.3f",dif),"(",sprintf("%.3f",dif - 1.96*se),",",sprintf("%.3f",dif + 1.96*se),")", sep = ""),
          pval = 2*pnorm(-abs(point_z))
   )
 
