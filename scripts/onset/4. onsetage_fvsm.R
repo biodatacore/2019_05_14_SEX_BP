@@ -32,12 +32,11 @@ for (i in unique(comb_dat$pid)) {
 
 bp_progr <- dat %>% mutate(progr = ntile(rate, 2) -1)
 
-comb_clin <- readRDS("data/comb_clin")
-
+comb_clin <- readRDS("data/comb_clin") %>% filter(!is.na(AGE))
 
 baselinedat <- comb_dat %>% 
-  mutate(onsetage = ifelse(is.na(onsetage),0,onsetage)) %>%
-  dplyr::select(pid,onsetage,gender=SEX) %>% unique() %>% 
+  mutate(onsetage = ifelse(is.na(onsetage), 0, onsetage)) %>%
+  dplyr::select(pid, onsetage, gender=SEX) %>% unique() %>% 
   left_join(bp_progr, by = c("pid"="id")) 
 
 baselineage <- matrix(nrow = nrow(baselinedat), ncol = 7) %>% as.data.frame()
@@ -74,8 +73,11 @@ saveRDS(baselinedat, "data/baselinedat.rds")
 
 
 
-baselinedat <- readRDS("data/baselinedat.rds") %>% mutate(onsetage = ifelse(onsetage == 0 , NA, onsetage))
 
+baselinedat <- readRDS("data/baselinedat.rds")
+
+baselinedat <- readRDS("data/baselinedat.rds") %>% mutate(onsetage = ifelse(onsetage == 0 , NA, onsetage)) 
+baselinedat$pid %>% duplicated() %>% sum()
 library(tableone)
 library(officer)
 library(flextable)
@@ -83,7 +85,7 @@ library(flextable)
 listVars <- c("AGE","SBP","DBP","MAP","PP","HRX","onsetage")
 
 tabledata <- baselinedat
- 
+
 tabledata$SEX <- as.factor(tabledata$gender)
 tabledata$HRX <- as.factor(tabledata$HRX)
 
@@ -99,4 +101,6 @@ tabledata$onsetage %>% length()
 tabledata[which(!is.na(tabledata$onsetage)),]$SEX %>% as.factor() %>% summary()
 
 sum(comb_dat$category_3!="NO_HTN" & comb_dat$SEX==2)
+
+baselinedat$gender %>% as.factor() %>% summary()
 

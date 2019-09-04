@@ -13,7 +13,7 @@ early_rapid <- early_rapid$coefficients %>%
   mutate(coef=paste(substr(exp(Estimate),1,5),"(",substr(exp(Estimate-1.96*`Std. Error`),1,5),",",substr(exp(Estimate+1.96*`Std. Error`),1,5),")",sep = "")) %>%
   dplyr::select(term, everything(.))
 
-write.csv(early_rapid,"output/early_rapid.csv")
+write.csv(early_rapid, "output/early_rapid.csv")
 
 
 # cardiovascular disease

@@ -10,9 +10,9 @@ MESA_clin <- readRDS("data/MESA_clin.rds")
 cardia_clin <- readRDS("data/CARDIA_clin.rds")
 
 cardia_clin <- cardia_clin %>% dplyr::select(id, AGE, SEX, SBP, DBP, TC, HDL, BMI, SMK, DM, HRX, hardcvd, hardcvd_age, race) %>% mutate(cohort = "CARDIA")
-MESA_clin <- MESA_clin %>% dplyr::select(id, AGE, SEX, SBP, DBP, TC, HDL, BMI, SMK, DM, HRX, hardcvd, hardcvd_age) %>% mutate(cohort = "MESA")
-ARIC_clin <- ARIC_clin %>% dplyr::select(id, AGE, SEX, SBP, DBP, TC, HDL, BMI, SMK, DM, HRX, hardcvd, hardcvd_age) %>% mutate(cohort = "ARIC")
-FHS_clin <- FHS_clin %>% dplyr::select(id, AGE, SEX, SBP, DBP, TC, HDL, BMI, SMK, DM, HRX, hardcvd, hardcvd_age) %>% mutate(cohort = "FHS")
+MESA_clin <- MESA_clin %>% dplyr::select(id, AGE, SEX, SBP, DBP, TC, HDL, BMI, SMK, DM, HRX, hardcvd, hardcvd_age, race) %>% mutate(cohort = "MESA")
+ARIC_clin <- ARIC_clin %>% dplyr::select(id, AGE, SEX, SBP, DBP, TC, HDL, BMI, SMK, DM, HRX, hardcvd, hardcvd_age, race) %>% mutate(cohort = "ARIC")
+FHS_clin <- FHS_clin %>% dplyr::select(id, AGE, SEX, SBP, DBP, TC, HDL, BMI, SMK, DM, HRX, hardcvd, hardcvd_age, race) %>% mutate(cohort = "FHS")
 
 comb_clin <- rbind(cardia_clin, FHS_clin, MESA_clin, ARIC_clin)
 comb_dat <- readRDS("data/comb_dat_id.rds")

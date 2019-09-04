@@ -9,8 +9,8 @@ library(dplyr)
 
 progr <- readRDS("data/progr.rds")
 
-progdat <- progr %>% filter(onsetgroup != "NO_HTN")
-
+progdat <- progr # %>% filter(onsetgroup != "NO_HTN")
+progr$onsetgroup
 # cardiovascular disease
 cvdall <- glm(hardcvd ~ progr + SEX + AGE + SBP + TC + HDL + BMI + SMK + DM, family = binomial("logit"), data = progdat) %>% summary()
 cvdm <- glm(hardcvd ~ progr + AGE + SBP + TC + HDL + BMI + SMK + DM, family = binomial("logit"), data = progdat %>% filter(SEX==1)) %>% summary()
@@ -45,4 +45,6 @@ write.csv(table1,"output/rapid_progr.csv")
 
 sum(baselinedat$onsetage!=0, na.rm = T)
 sum(baselinedat$onsetage!=0 & baselinedat$gender==2, na.rm = T)
+
+
 

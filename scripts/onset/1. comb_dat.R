@@ -49,7 +49,7 @@ cardia <- cardia[,c("SBP","DBP","SEX","AGE","HRX","id","TP")] %>%
 
 ARIC_cleaned <- readRDS("data/ARIC_cleaned.rds")
 
-ARIC_comb <- ARIC[,c("SBP","DBP","SEX","AGE","HRX","id","TP")] %>% 
+ARIC_comb <- ARIC_cleaned[,c("SBP","DBP","SEX","AGE","HRX","id","TP")] %>% 
   mutate(SBP = SBP + 2.6,
          DBP = DBP + 6.2,
          cohort = "ARIC",
