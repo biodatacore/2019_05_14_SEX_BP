@@ -30,9 +30,20 @@ for (i in unique(comb_dat$pid)) {
   dat[which(dat$id==i),2] <- rate
 }
 
-bp_progr <- dat %>% mutate(progr = ntile(rate, 2) -1)
+bp_progr <- dat
 
 comb_clin <- readRDS("data/comb_clin") %>% filter(!is.na(AGE))
+
+meandata <- comb_dat %>%
+  group_by(pid) %>% 
+  dplyr::summarise(meanAGE = mean(AGE, na.rm = T),
+                   meanSBP = mean(SBP, na.rm = T),
+                   everHRX = max(HRX, na.rm = T),
+                   meanTC = mean(TC, na.rm = T),
+                   meanHDL = mean(HDL, na.rm = T),
+                   meanBMI = mean(BMI, na.rm = T),
+                   everSMK = max(SMK, na.rm = T),
+                   everDM = max(DM, na.rm = T))
 
 baselinedat <- comb_dat %>% 
   mutate(onsetage = ifelse(is.na(onsetage), 0, onsetage)) %>%
@@ -65,29 +76,39 @@ for (i in unique(baselineage$pid)) {
 baselinedat <- baselinedat %>% left_join(baselineage, by = "pid")
 
 progr <- baselinedat %>%
-  dplyr::select(pid, progr) %>%
-  left_join(comb_clin, by =c("pid"="id")) 
+  dplyr::select(pid, rate) %>%
+  left_join(comb_clin, by =c("pid"="id")) %>%
+  left_join(meandata, by = "pid") %>%
+  mutate(onsetgroup = as.character(onsetgroup)) %>%
+  mutate_all(function(x){ifelse(x == "-Inf"|x == "Inf",NA,x)})
+
+rapidthreshold <- mean(filter(progr, onsetgroup == "NO_HTN")$rate, na.rm=T) + 2*sd(filter(progr, onsetgroup == "NO_HTN")$rate, na.rm = T)
+rapidthreshold1 <- mean(filter(progr, onsetgroup == "NO_HTN" & SEX==1)$rate, na.rm=T) + 2*sd(filter(progr, onsetgroup == "NO_HTN"  & SEX==1)$rate, na.rm = T)
+rapidthreshold2 <- mean(filter(progr, onsetgroup == "NO_HTN" & SEX==2)$rate, na.rm=T) + 2*sd(filter(progr, onsetgroup == "NO_HTN"  & SEX==2)$rate, na.rm = T)
+
+# progr <- progr %>% mutate(progr = ifelse((SEX==1&rate >= rapidthreshold1)|(SEX==2&rate >= rapidthreshold2),1,0))
+progr <- progr %>% mutate(progr = ifelse(rate >= rapidthreshold ,1,0))
 
 saveRDS(progr, "data/progr.rds")
 saveRDS(baselinedat, "data/baselinedat.rds")
 
+baselinedat <- readRDS("data/baselinedat.rds") %>% 
+  left_join(comb_dat %>% dplyr::select(pid,cohort) %>% mutate(pid = as.character(pid)) %>% unique(), by = c("pid"="pid")) %>%
+  mutate(onsetage = ifelse(onsetage == 0 , NA, onsetage)) 
+baselinedat$cohort %>% as.factor()%>% summary()
 
-
-
-baselinedat <- readRDS("data/baselinedat.rds")
-
-baselinedat <- readRDS("data/baselinedat.rds") %>% mutate(onsetage = ifelse(onsetage == 0 , NA, onsetage)) 
 baselinedat$pid %>% duplicated() %>% sum()
 library(tableone)
 library(officer)
 library(flextable)
 
-listVars <- c("AGE","SBP","DBP","MAP","PP","HRX","onsetage")
+listVars <- c("AGE","SBP","DBP","MAP","PP","HRX","onsetage","cohort")
 
 tabledata <- baselinedat
 
 tabledata$SEX <- as.factor(tabledata$gender)
 tabledata$HRX <- as.factor(tabledata$HRX)
+tabledata$cohort <- as.factor(tabledata$cohort)
 
 table1 <- CreateTableOne(vars = listVars, data = tabledata , strata = "SEX", testNonNormal = kruskal.test)
 table1 <- print(table1)

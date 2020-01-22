@@ -18,6 +18,7 @@ comb_dat %<>% mutate(AGE = round(AGE),
                      pid = id,
                      id = as.numeric(id))
 head(comb_dat)
+
 # Filter out those who were under 18 or HTN at baseline --------------------------
 
 u1850 <-
@@ -304,33 +305,33 @@ n = 8
 cols = gg_color_hue(n)
 
 
-# ggplot() +
-#   coord_cartesian(ylim = c(100, 150), xlim = c(25, 85)) +
-#   geom_smooth(aes(x = AGE, y = SBP, color = "40s", fill = "40s"), linetype = "dotted", method = "loess", data = d1, show.legend = F) +
-#   geom_smooth(aes(x = AGE, y = SBP, color = "50s", fill = "50s"), linetype = "dotted", method = "loess", data = d2, show.legend = F) +
-#   geom_smooth(aes(x = AGE, y = SBP, color = "60s", fill = "60s"), linetype = "dotted", method = "loess", data = d3, show.legend = F) +
-#   geom_smooth(aes(x = AGE, y = SBP, color = "70s", fill = "70s"), linetype = "dotted", method = "loess", data = d4, show.legend = F) +
-#   geom_smooth(aes(x = AGE, y = SBP, color = "never", fill = "never"), linetype = "dotted", method = "loess", data = d5, show.legend = F) +
-#   geom_line(aes(x = x, y = y, color = "40s"), data = cl1) +
-#   geom_line(aes(x = x, y = y, color = "50s"), data = cl2) +
-#   geom_line(aes(x = x, y = y, color = "60s"), data = cl3) +
-#   geom_line(aes(x = x, y = y, color = "70s"), data = cl4) +
-#   geom_line(aes(x = x, y = y, color = "never"), data = cl5, alpha = 0) +
-#   scale_color_manual(name = "Age at HTN Onset",
-#                      values = c("40s" = "blue4", "50s" = cols[2], "60s" = cols[6], "70s" = cols[1], "never" = cols[4]),
-#                      labels = c("40s" = "~ 44", "50s" = "45-54", "60s" = "55-64", "70s" = "65-75", "never" = "No onset")) +
-#   scale_fill_manual(name = "Age at HTN Onset",
-#                      values = c("40s" = "blue4", "50s" = cols[2], "60s" = cols[6], "70s" = cols[1], "never" = cols[4]),
-#                      labels = c("40s" = "~ 44", "50s" = "45-54", "60s" = "55-64", "70s" = "65-75", "never" = "No onset")) +
-#   scale_y_continuous(name = "SBP, mm Hg", expand = c(0,0)) + 
-#   scale_x_continuous(breaks = seq(from = 20, to = 90, by = 10), expand = c(0,0)) + 
-#   ggtitle("Men") +
-#   theme_bw() +
-#   theme(title = element_text(color = "#434443",size =15,face="bold"),
-#         axis.text = element_text(color = "#434443",size =12,face="bold"),
-#         legend.position = "bottom",
-#         legend.title = element_text(color = "#434443",size =10,face="bold"),
-#         legend.text = element_text(color = "#434443",size =10,face="bold")) 
+ggplot() +
+  coord_cartesian(ylim = c(100, 150), xlim = c(25, 85)) +
+  geom_smooth(aes(x = AGE, y = SBP, color = "40s", fill = "40s"), linetype = "dotted", method = "loess", data = d1, show.legend = F) +
+  geom_smooth(aes(x = AGE, y = SBP, color = "50s", fill = "50s"), linetype = "dotted", method = "loess", data = d2, show.legend = F) +
+  geom_smooth(aes(x = AGE, y = SBP, color = "60s", fill = "60s"), linetype = "dotted", method = "loess", data = d3, show.legend = F) +
+  geom_smooth(aes(x = AGE, y = SBP, color = "70s", fill = "70s"), linetype = "dotted", method = "loess", data = d4, show.legend = F) +
+  geom_smooth(aes(x = AGE, y = SBP, color = "never", fill = "never"), linetype = "dotted", method = "loess", data = d5, show.legend = F) +
+  geom_line(aes(x = x, y = y, color = "40s"), data = cl1) +
+  geom_line(aes(x = x, y = y, color = "50s"), data = cl2) +
+  geom_line(aes(x = x, y = y, color = "60s"), data = cl3) +
+  geom_line(aes(x = x, y = y, color = "70s"), data = cl4) +
+  geom_line(aes(x = x, y = y, color = "never"), data = cl5, alpha = 0) +
+  scale_color_manual(name = "Age at HTN Onset",
+                     values = c("40s" = "blue4", "50s" = cols[2], "60s" = cols[6], "70s" = cols[1], "never" = cols[4]),
+                     labels = c("40s" = "~ 44", "50s" = "45-54", "60s" = "55-64", "70s" = "65-75", "never" = "No onset")) +
+  scale_fill_manual(name = "Age at HTN Onset",
+                     values = c("40s" = "blue4", "50s" = cols[2], "60s" = cols[6], "70s" = cols[1], "never" = cols[4]),
+                     labels = c("40s" = "~ 44", "50s" = "45-54", "60s" = "55-64", "70s" = "65-75", "never" = "No onset")) +
+  scale_y_continuous(name = "SBP, mm Hg", expand = c(0,0)) +
+  scale_x_continuous(breaks = seq(from = 20, to = 90, by = 10), expand = c(0,0)) +
+  ggtitle("Men") +
+  theme_bw() +
+  theme(title = element_text(color = "#434443",size =15,face="bold"),
+        axis.text = element_text(color = "#434443",size =12,face="bold"),
+        legend.position = "bottom",
+        legend.title = element_text(color = "#434443",size =10,face="bold"),
+        legend.text = element_text(color = "#434443",size =10,face="bold"))
 
 saveRDS(cl1,"data/cl1_m.rds")
 saveRDS(cl2,"data/cl2_m.rds")
@@ -348,10 +349,19 @@ cl2_f <- readRDS("data/cl2_f.rds")
 cl3_f <- readRDS("data/cl3_f.rds")
 cl4_f <- readRDS("data/cl4_f.rds")
 
+cl1_m <- cl1_m %>% mutate(y0 = y-cl1_m$y[1])
+cl2_m <- cl2_m %>% mutate(y0 = y-cl2_m$y[1])
+cl3_m <- cl3_m %>% mutate(y0 = y-cl3_m$y[1])
+cl4_m <- cl4_m %>% mutate(y0 = y-cl4_m$y[1])
+
+cl1_f <- cl1_f %>% mutate(y0 = y-cl1_f$y[1])
+cl2_f <- cl2_f %>% mutate(y0 = y-cl2_f$y[1])
+cl3_f <- cl3_f %>% mutate(y0 = y-cl3_f$y[1])
+cl4_f <- cl4_f %>% mutate(y0 = y-cl4_f$y[1])
 
 
 p1 <- ggplot() +
-  coord_cartesian(ylim = c(100, 150), xlim = c(25, 45)) +
+  coord_cartesian(ylim = c(105, 145), xlim = c(15, 45)) +
   geom_line(aes(x = x, y = y, color = "m"), data = cl1_m, size =1, show.legend = F) +
   geom_line(aes(x = x, y = y, color = "f"), data = cl1_f, linetype = "dotdash", size =1, show.legend = F) +
   scale_color_manual(name = "Sex",
@@ -360,8 +370,8 @@ p1 <- ggplot() +
   scale_fill_manual(name = "Sex",
                     values = c("m" = "skyblue3", "f" = "#c55a4a"),
                     labels = c("m" = "Men", "f" = "Women")) +
-  scale_y_continuous(name = "SBP, mm Hg", expand = c(0,0)) + 
-  scale_x_continuous(name = "HTN onset <45y", breaks = seq(from = 20, to = 90, by = 10), expand = c(0,0)) + 
+  scale_y_continuous(name = "SBP, mm Hg") + 
+  scale_x_continuous(name = "HTN onset at < 45y\n(Premenopause*)", breaks = seq(from = 20, to = 90, by = 10), expand = c(0,0)) + 
   # ggtitle("Age at HTN onset ~44") +
   theme_bw() +
   theme(axis.title.y = element_text(color = "#434443",size =13,face="bold"),
@@ -373,7 +383,7 @@ p1 <- ggplot() +
 
 
 p2 <- ggplot() +
-  coord_cartesian(ylim = c(100, 150), xlim = c(25, 55)) +
+  coord_cartesian(ylim = c(105, 145), xlim = c(15, 55)) +
   geom_line(aes(x = x, y = y, color = "m"), data = cl2_m, size =1, show.legend = F) +
   geom_line(aes(x = x, y = y, color = "f"), data = cl2_f, linetype = "dotdash", size =1, show.legend = F) +
   scale_color_manual(name = "Sex",
@@ -382,8 +392,8 @@ p2 <- ggplot() +
   scale_fill_manual(name = "Sex",
                     values = c("m" = "skyblue3", "f" = "#c55a4a"),
                     labels = c("m" = "Men", "f" = "Women")) +
-  scale_y_continuous(name = "SBP, mm Hg", expand = c(0,0)) + 
-  scale_x_continuous(name = "HTN onset 45-54y", breaks = seq(from = 20, to = 90, by = 10), expand = c(0,0)) + 
+  scale_y_continuous(name = "SBP, mm Hg") + 
+  scale_x_continuous(name = "HTN onset at 45-54y\n(Menopause*)", breaks = seq(from = 20, to = 90, by = 10), expand = c(0,0)) + 
   # ggtitle("Age at HTN onset 45-54") +
   theme_bw() +
   theme(axis.title.x = element_text(color = "#434443",size =10,face="bold"),
@@ -396,7 +406,7 @@ p2 <- ggplot() +
 
 
 p3 <- ggplot() +
-  coord_cartesian(ylim = c(100, 150), xlim = c(25, 65)) +
+  coord_cartesian(ylim = c(105, 145), xlim = c(15, 65)) +
   geom_line(aes(x = x, y = y, color = "m"), data = cl3_m, size =1, show.legend = F) +
   geom_line(aes(x = x, y = y, color = "f"), data = cl3_f, linetype = "dotdash", size =1, show.legend = F) +
   scale_color_manual(name = "Sex",
@@ -405,8 +415,8 @@ p3 <- ggplot() +
   scale_fill_manual(name = "Sex",
                     values = c("m" = "skyblue3", "f" = "#c55a4a"),
                     labels = c("m" = "Men", "f" = "Women")) +
-  scale_y_continuous(name = "SBP, mm Hg", expand = c(0,0)) + 
-  scale_x_continuous(name = "HTN onset 55-64y", breaks = seq(from = 20, to = 90, by = 10), expand = c(0,0)) + 
+  scale_y_continuous(name = "SBP, mm Hg") + 
+  scale_x_continuous(name = "HTN onset at 55-64y\n(Postmenopause*)", breaks = seq(from = 20, to = 90, by = 10), expand = c(0,0)) + 
   # ggtitle("Age at HTN onset 55-64") +
   theme_bw() +
   theme(axis.title.x = element_text(color = "#434443",size =10,face="bold"),
@@ -419,7 +429,7 @@ p3 <- ggplot() +
 
 
 p4 <- ggplot() +
-  coord_cartesian(ylim = c(100, 150), xlim = c(25, 75)) +
+  coord_cartesian(ylim = c(105, 145), xlim = c(15, 75)) +
   geom_line(aes(x = x, y = y, color = "m"), data = cl4_m, size =1) +
   geom_line(aes(x = x, y = y, color = "f"), data = cl4_f, linetype = "dotdash", size =1) +
   scale_color_manual(name = "Sex",
@@ -428,8 +438,8 @@ p4 <- ggplot() +
   scale_fill_manual(name = "Sex",
                     values = c("m" = "skyblue3", "f" = "#c55a4a"),
                     labels = c("m" = "Men", "f" = "Women")) +
-  scale_y_continuous(name = "SBP, mm Hg", expand = c(0,0)) + 
-  scale_x_continuous(name = "HTN onset 65-75y", breaks = seq(from = 20, to = 90, by = 10), expand = c(0,0)) + 
+  scale_y_continuous(name = "SBP, mm Hg") + 
+  scale_x_continuous(name = "HTN onset at 65-75y\n  ", breaks = seq(from = 20, to = 90, by = 10), expand = c(0,0)) + 
   # ggtitle("Age at HTN onset 65-75") +
   theme_bw() +
   theme(
@@ -437,9 +447,13 @@ p4 <- ggplot() +
         axis.text.x = element_text(color = "#434443",size =12,face="bold"),
         axis.text.y = element_blank(),
         axis.title.y = element_blank(),
-        legend.position = c(0.2,0.85),
+        legend.position = c(0.25,0.85),
         legend.title = element_text(color = "#434443",size =10,face="bold"),
-        legend.text = element_text(color = "#434443",size =10,face="bold")) 
+        legend.text = element_text(color = "#434443",size =10,face="bold"),
+        legend.background = element_rect(fill="white",
+                                         size=0.2, 
+                                         linetype="solid", 
+                                         colour ="#434443")) 
 
 
 
@@ -457,6 +471,130 @@ grid.arrange(
   widths = c(4, 4, 5, 6),
   layout_matrix = rbind(c(1, 2, 3,4))
 )
+
+
+
+p10 <- ggplot() +
+  coord_cartesian(ylim = c(0, 40), xlim = c(15, 45)) +
+  geom_line(aes(x = x, y = y0, color = "m"), data = cl1_m, size =1, show.legend = F) +
+  geom_line(aes(x = x, y = y0, color = "f"), data = cl1_f, linetype = "dotdash", size =1, show.legend = F) +
+  scale_color_manual(name = "Sex",
+                     values = c("m" = "skyblue3", "f" = "#c55a4a"),
+                     labels = c("m" = "Men", "f" = "Women")) +
+  scale_fill_manual(name = "Sex",
+                    values = c("m" = "skyblue3", "f" = "#c55a4a"),
+                    labels = c("m" = "Men", "f" = "Women")) +
+  scale_y_continuous(name = "SBP Elevation, mm Hg") + 
+  scale_x_continuous(name = "HTN onset at < 45y\n(Premenopause*)", breaks = seq(from = 20, to = 90, by = 10), expand = c(0,0)) + 
+  # ggtitle("Age at HTN onset ~44") +
+  theme_bw() +
+  theme(axis.title.y = element_text(color = "#434443",size =13,face="bold"),
+        axis.title.x = element_text(color = "#434443",size =10,face="bold"),
+        axis.text = element_text(color = "#434443",size =12,face="bold"),
+        legend.position = "bottom",
+        legend.title = element_text(color = "#434443",size =10,face="bold"),
+        legend.text = element_text(color = "#434443",size =10,face="bold")) 
+
+
+p20 <- ggplot() +
+  coord_cartesian(ylim = c(0, 40), xlim = c(15, 55)) +
+  geom_line(aes(x = x, y = y0, color = "m"), data = cl2_m, size =1, show.legend = F) +
+  geom_line(aes(x = x, y = y0, color = "f"), data = cl2_f, linetype = "dotdash", size =1, show.legend = F) +
+  scale_color_manual(name = "Sex",
+                     values = c("m" = "skyblue3", "f" = "#c55a4a"),
+                     labels = c("m" = "Men", "f" = "Women")) +
+  scale_fill_manual(name = "Sex",
+                    values = c("m" = "skyblue3", "f" = "#c55a4a"),
+                    labels = c("m" = "Men", "f" = "Women")) +
+  scale_y_continuous(name = "SBP Elevation, mm Hg") + 
+  scale_x_continuous(name = "HTN onset at 45-54y\n(Menopause*)", breaks = seq(from = 20, to = 90, by = 10), expand = c(0,0)) + 
+  # ggtitle("Age at HTN onset 45-54") +
+  theme_bw() +
+  theme(axis.title.x = element_text(color = "#434443",size =10,face="bold"),
+        axis.text.x = element_text(color = "#434443",size =12,face="bold"),
+        axis.text.y = element_blank(),
+        axis.title.y = element_blank(),
+        legend.position = "bottom",
+        legend.title = element_text(color = "#434443",size =10,face="bold"),
+        legend.text = element_text(color = "#434443",size =10,face="bold")) 
+
+
+p30 <- ggplot() +
+  coord_cartesian(ylim = c(0, 40), xlim = c(15, 65)) +
+  geom_line(aes(x = x, y = y0, color = "m"), data = cl3_m, size =1, show.legend = F) +
+  geom_line(aes(x = x, y = y0, color = "f"), data = cl3_f, linetype = "dotdash", size =1, show.legend = F) +
+  scale_color_manual(name = "Sex",
+                     values = c("m" = "skyblue3", "f" = "#c55a4a"),
+                     labels = c("m" = "Men", "f" = "Women")) +
+  scale_fill_manual(name = "Sex",
+                    values = c("m" = "skyblue3", "f" = "#c55a4a"),
+                    labels = c("m" = "Men", "f" = "Women")) +
+  scale_y_continuous(name = "SBP Elevation, mm Hg") + 
+  scale_x_continuous(name = "HTN onset at 55-64y\n(Postmenopause*)", breaks = seq(from = 20, to = 90, by = 10), expand = c(0,0)) + 
+  # ggtitle("Age at HTN onset 55-64") +
+  theme_bw() +
+  theme(axis.title.x = element_text(color = "#434443",size =10,face="bold"),
+        axis.text.x = element_text(color = "#434443",size =12,face="bold"),
+        axis.text.y = element_blank(),
+        axis.title.y = element_blank(),
+        legend.position = "bottom",
+        legend.title = element_text(color = "#434443",size =10,face="bold"),
+        legend.text = element_text(color = "#434443",size =10,face="bold")) 
+
+
+p40 <- ggplot() +
+  coord_cartesian(ylim = c(0, 40), xlim = c(15, 75)) +
+  geom_line(aes(x = x, y = y0, color = "m"), data = cl4_m, size =1) +
+  geom_line(aes(x = x, y = y0, color = "f"), data = cl4_f, linetype = "dotdash", size =1) +
+  scale_color_manual(name = "Sex",
+                     values = c("m" = "skyblue3", "f" = "#c55a4a"),
+                     labels = c("m" = "Men", "f" = "Women")) +
+  scale_fill_manual(name = "Sex",
+                    values = c("m" = "skyblue3", "f" = "#c55a4a"),
+                    labels = c("m" = "Men", "f" = "Women")) +
+  scale_y_continuous(name = "SBP Elevation, mm Hg") + 
+  scale_x_continuous(name = "HTN onset at 65-75y\n  ", breaks = seq(from = 20, to = 90, by = 10), expand = c(0,0)) + 
+  # ggtitle("Age at HTN onset 65-75") +
+  theme_bw() +
+  theme(
+    axis.title.x = element_text(color = "#434443",size =10,face="bold"),
+    axis.text.x = element_text(color = "#434443",size =12,face="bold"),
+    axis.text.y = element_blank(),
+    axis.title.y = element_blank(),
+    legend.position = c(0.25,0.85),
+    legend.title = element_text(color = "#434443",size =10,face="bold"),
+    legend.text = element_text(color = "#434443",size =10,face="bold"),
+    legend.background = element_rect(fill="white",
+                                     size=0.2, 
+                                     linetype="solid", 
+                                     colour ="#434443")) 
+
+
+
+
+library(gridExtra)
+
+par(mai=c(0,0,0,0),xaxs="i",yaxs="i")
+
+grid.arrange(
+  p10,
+  p20,
+  p30,
+  p40,
+  # grobs = gl,
+  widths = c(4, 4, 5, 6),
+  layout_matrix = rbind(c(1, 2, 3,4))
+)
+
+
+
+
+
+
+
+
+
+
 
 
 

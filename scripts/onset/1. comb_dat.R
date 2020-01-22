@@ -2,16 +2,19 @@ library(dplyr)
 library(magrittr)
 library(ggplot2)
 library(haven)
+
+varlist <- c("SBP","DBP","SEX","AGE","HRX","ID","TP","race","TC","HDL","BMI","SMK","DM")
+
 # fhs
 
 dat <- readRDS("data/fhs_cleaned.rds")
 
-fhs <- dat[,c("SBP","DBP","SEX","AGE","HRX","ID","TP")] %>% 
+fhs <- dat[,varlist] %>% 
   mutate(id=ID, 
          cohort = "fhs",
          visit = TP,
          TP = paste("fhs",TP,sep = "")) %>% 
-  dplyr::select(-ID) %>% 
+  dplyr::select(-id) %>% 
   filter(!is.na(AGE) & !is.na(SEX) & !is.na(SBP) & !is.na(DBP) & !is.na(HRX))
 
 rm(dat)
@@ -20,8 +23,8 @@ rm(dat)
 
 library(haven)
 
-MESA_ALT <- readRDS("data/mesa_cleaned.rds")
-MESA_ALT <- MESA_ALT[,c("SBP","DBP","SEX","AGE","HRX","id","TP")] %>% 
+MESA_ALT <- readRDS("data/mesa_cleaned.rds") %>% mutate(ID = id)
+MESA_ALT <- MESA_ALT[,varlist] %>% 
   mutate(cohort = "MESA",
          SBP = SBP + 0.5, 
          DBP = DBP + 2.9,
@@ -32,11 +35,11 @@ MESA_ALT <- MESA_ALT[,c("SBP","DBP","SEX","AGE","HRX","id","TP")] %>%
 
 # CARDIA
 
-cardia <- readRDS("data/cardia_cleaned.rds")
-cardia <- cardia[,c("SBP","DBP","SEX","AGE","HRX","id","TP")] %>% 
+cardia <- readRDS("data/cardia_cleaned.rds") %>% mutate(ID = id)
+cardia <- cardia[,varlist] %>% 
   mutate(cohort = "cardia",
-         SBP = ifelse(TP == 20 | TP == 25, 3.74 + 0.96*SBP, SBP),
-         DBP = ifelse(TP == 20 | TP == 25, 1.30 + 0.97*DBP, DBP),
+         SBP = ifelse(TP == max(cardia$TP) | TP == max(cardia$TP)-1, 3.74 + 0.96*SBP, SBP),
+         DBP = ifelse(TP == max(cardia$TP) | TP == max(cardia$TP)-1, 1.30 + 0.97*DBP, DBP),
          SBP = SBP + 2.6,
          DBP = DBP + 6.2,
          visit = TP + 1,
@@ -47,16 +50,15 @@ cardia <- cardia[,c("SBP","DBP","SEX","AGE","HRX","id","TP")] %>%
 
 # ARIC 
 
-ARIC_cleaned <- readRDS("data/ARIC_cleaned.rds")
+ARIC_cleaned <- readRDS("data/ARIC_cleaned.rds") %>% mutate(ID = id)
 
-ARIC_comb <- ARIC_cleaned[,c("SBP","DBP","SEX","AGE","HRX","id","TP")] %>% 
+ARIC_comb <- ARIC_cleaned[,varlist] %>% 
   mutate(SBP = SBP + 2.6,
          DBP = DBP + 6.2,
          cohort = "ARIC",
          visit = TP,
          TP = paste("aric",TP,sep = ""))  %>% 
   filter(!is.na(AGE) & !is.na(SEX) & !is.na(SBP) & !is.na(DBP) & !is.na(HRX))
-
 
 
 
@@ -67,7 +69,7 @@ comb_dat <- rbind(cardia, fhs, MESA_ALT, ARIC_comb) %>%
          MAP = DBP + 1/3*PP,
          AGE = round(AGE),
          TP = as.factor(TP),
-         id = as.factor(id))
+         id = as.factor(ID))
 
 comb_dat_id <- rbind(cardia, fhs, MESA_ALT, ARIC_comb) %>% 
   mutate(SBP = ifelse(HRX==1, SBP + 10 , SBP),

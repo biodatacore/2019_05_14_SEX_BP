@@ -18,6 +18,7 @@ comb_dat %<>% mutate(AGE = round(AGE),
                      pid = id,
                      id = as.numeric(id))
 head(comb_dat)
+
 # Filter out those who were under 18 or HTN at baseline --------------------------
 
 u1850 <-
@@ -302,33 +303,33 @@ gg_color_hue <- function(n) {
 n = 8
 cols = gg_color_hue(n)
 
-# ggplot() +
-#   coord_cartesian(ylim = c(100, 150), xlim = c(25, 85)) +
-#   geom_smooth(aes(x = AGE, y = SBP, color = "40s", fill = "40s"), linetype = "dotted", method = "loess",data = d1, show.legend = F) +
-#   geom_smooth(aes(x = AGE, y = SBP, color = "50s", fill = "50s"), linetype = "dotted", method = "loess", data = d2, show.legend = F) +
-#   geom_smooth(aes(x = AGE, y = SBP, color = "60s", fill = "60s"), linetype = "dotted", method = "loess", data = d3, show.legend = F) +
-#   geom_smooth(aes(x = AGE, y = SBP, color = "70s", fill = "70s"), linetype = "dotted", method = "loess", data = d4, show.legend = F) +
-#   geom_smooth(aes(x = AGE, y = SBP, color = "never", fill = "never"), linetype = "dotted", method = "loess", data = d5, show.legend = F) +
-#   geom_line(aes(x = x, y = y, color = "40s"), data = cl1) +
-#   geom_line(aes(x = x, y = y, color = "50s"), data = cl2) +
-#   geom_line(aes(x = x, y = y, color = "60s"), data = cl3) +
-#   geom_line(aes(x = x, y = y, color = "70s"), data = cl4) +
-#   geom_line(aes(x = x, y = y, color = "never"), data = cl5, alpha = 0) +
-#   scale_color_manual(name = "Age at HTN Onset",
-#                      values = c("40s" = "blue4", "50s" = cols[2], "60s" = cols[6], "70s" = cols[1], "never" = cols[4]),
-#                      labels = c("40s" = "~ 44", "50s" = "45-54", "60s" = "55-64", "70s" = "65-75", "never" = "No onset")) +
-#   scale_fill_manual(name = "Age at HTN Onset",
-#                      values = c("40s" = "blue4", "50s" = cols[2], "60s" = cols[6], "70s" = cols[1], "never" = cols[4]),
-#                      labels = c("40s" = "~ 44", "50s" = "45-54", "60s" = "55-64", "70s" = "65-75", "never" = "No onset")) +
-#   scale_y_continuous(name = "SBP, mm Hg", expand = c(0,0)) + 
-#   scale_x_continuous(breaks = seq(from = 20, to = 90, by = 10), expand = c(0,0)) + 
-#   ggtitle("Women") +
-#   theme_bw() +
-#   theme(title = element_text(color = "#434443",size =15,face="bold"),
-#         axis.text = element_text(color = "#434443",size =12,face="bold"),
-#         legend.position = "bottom",
-#         legend.title = element_text(color = "#434443",size =10,face="bold"),
-#         legend.text = element_text(color = "#434443",size =10,face="bold")) 
+ggplot() +
+  coord_cartesian(ylim = c(100, 150), xlim = c(25, 85)) +
+  geom_smooth(aes(x = AGE, y = SBP, color = "40s", fill = "40s"), linetype = "dotted", method = "loess",data = d1, show.legend = F) +
+  geom_smooth(aes(x = AGE, y = SBP, color = "50s", fill = "50s"), linetype = "dotted", method = "loess", data = d2, show.legend = F) +
+  geom_smooth(aes(x = AGE, y = SBP, color = "60s", fill = "60s"), linetype = "dotted", method = "loess", data = d3, show.legend = F) +
+  geom_smooth(aes(x = AGE, y = SBP, color = "70s", fill = "70s"), linetype = "dotted", method = "loess", data = d4, show.legend = F) +
+  geom_smooth(aes(x = AGE, y = SBP, color = "never", fill = "never"), linetype = "dotted", method = "loess", data = d5, show.legend = F) +
+  geom_line(aes(x = x, y = y, color = "40s"), data = cl1) +
+  geom_line(aes(x = x, y = y, color = "50s"), data = cl2) +
+  geom_line(aes(x = x, y = y, color = "60s"), data = cl3) +
+  geom_line(aes(x = x, y = y, color = "70s"), data = cl4) +
+  geom_line(aes(x = x, y = y, color = "never"), data = cl5, alpha = 0) +
+  scale_color_manual(name = "Age at HTN Onset",
+                     values = c("40s" = "blue4", "50s" = cols[2], "60s" = cols[6], "70s" = cols[1], "never" = cols[4]),
+                     labels = c("40s" = "~ 44", "50s" = "45-54", "60s" = "55-64", "70s" = "65-75", "never" = "No onset")) +
+  scale_fill_manual(name = "Age at HTN Onset",
+                     values = c("40s" = "blue4", "50s" = cols[2], "60s" = cols[6], "70s" = cols[1], "never" = cols[4]),
+                     labels = c("40s" = "~ 44", "50s" = "45-54", "60s" = "55-64", "70s" = "65-75", "never" = "No onset")) +
+  scale_y_continuous(name = "SBP, mm Hg", expand = c(0,0)) +
+  scale_x_continuous(breaks = seq(from = 20, to = 90, by = 10), expand = c(0,0)) +
+  ggtitle("Women") +
+  theme_bw() +
+  theme(title = element_text(color = "#434443",size =15,face="bold"),
+        axis.text = element_text(color = "#434443",size =12,face="bold"),
+        legend.position = "bottom",
+        legend.title = element_text(color = "#434443",size =10,face="bold"),
+        legend.text = element_text(color = "#434443",size =10,face="bold"))
 
 saveRDS(cl1,"data/cl1_f.rds")
 saveRDS(cl2,"data/cl2_f.rds")
