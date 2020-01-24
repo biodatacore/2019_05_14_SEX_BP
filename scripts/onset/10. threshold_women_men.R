@@ -72,20 +72,11 @@ coxdat <-
 # coxdat[which(coxdat$SBP_burden3!=0),]$SBP_burden3 %>% summary()
 # coxdat$cohort %>% as.factor() %>% summary()
 
-# 
-# sbprange = seq(110,140,10)
-# 
-# for (i in sbprange) {
-#   eval(parse(text = paste("coxdat$SBP_",i," <- ifelse(coxdat$SBP >= ",i,",1,0)",sep = "")))
-# }
-# 
-# itvlrange = 5:20
-# 
-# for (i in itvlrange) {
-#   eval(parse(text = paste("coxdat$perSBP_",i," <- coxdat$SBP/",i,sep = "")))
-# }
 
 saveRDS(coxdat,"data/coxdat.rds")
+
+sbprange = seq(110,140,10)
+itvlrange = 5:20
 
 sbp_thresh <- paste("SBP_",sbprange,sep = "")
 sbp_itvl <- paste("perSBP_",itvlrange,sep = "")
@@ -103,6 +94,7 @@ all_inter <- function(model_list){
   }) %>% 
     bind_rows()}
 
+signum <- function(x){x = ifelse(x < 0.001,"<0.001", ifelse(x < 0.01, sprintf("%.03f", x), ifelse(x < 0.06 ,sprintf("%.03f", x), sprintf("%.02f", x))))}
 
 # SBP (restricted cubic spline) and CVD risk
 
@@ -118,13 +110,13 @@ nohxchd1$pred <- nohxchd1$SBP_average
 nohxchd2$pred <- nohxchd2$SBP_average
 nohxchd$pred <- nohxchd$SBP_average
 
-nohxchd1$outcome <- nohxchd1$hardcvd
-nohxchd2$outcome <- nohxchd2$hardcvd
-nohxchd$outcome <- nohxchd$hardcvd
+nohxchd1$outcome <- nohxchd1$chf
+nohxchd2$outcome <- nohxchd2$chf
+nohxchd$outcome <- nohxchd$chf
 
-nohxchd1$outcometime <- nohxchd1$hardcvdtime
-nohxchd2$outcometime <- nohxchd2$hardcvdtime
-nohxchd$outcometime <- nohxchd$hardcvdtime
+nohxchd1$outcometime <- nohxchd1$chftime
+nohxchd2$outcometime <- nohxchd2$chftime
+nohxchd$outcometime <- nohxchd$chftime
 
 low <- quantile(nohxchd$pred, 0.025)
 up <- quantile(nohxchd$pred, 0.975)
@@ -197,13 +189,17 @@ ggplot() +
 # baseline characteristics for survival data
 
 baselinedat <- coxdat
+baselinedat$hardcvdtime %>% summary()
+baselinedat$hardcvd %>% sum()
 
 baselinedat$pid %>% duplicated() %>% sum()
 library(tableone)
 library(officer)
 library(flextable)
 
-listVars <- c("AGE","BMI","SBP","HRX","SMK","DM","TC","HDL","race","cohort","hardcvd")
+listVars <- c("AGE","BMI","SBP","HRX","SMK","DM","TC","HDL","race","cohort","hardcvd","mi","chf","strk",
+              "early_cvd","early_mi","early_chf","early_strk",
+              "late_cvd","late_mi","late_chf","late_strk")
 
 tabledata <- baselinedat
 
@@ -214,6 +210,17 @@ tabledata$DM <- as.factor(tabledata$DM)
 tabledata$race <- as.factor(tabledata$race)
 tabledata$cohort <- as.factor(tabledata$cohort)
 tabledata$hardcvd <- as.factor(tabledata$hardcvd)
+tabledata$mi <- as.factor(tabledata$mi)
+tabledata$chf <- as.factor(tabledata$chf)
+tabledata$strk <- as.factor(tabledata$strk)
+tabledata$early_cvd <- as.factor(tabledata$early_cvd)
+tabledata$early_mi <- as.factor(tabledata$early_mi)
+tabledata$early_chf <- as.factor(tabledata$early_chf)
+tabledata$early_strk <- as.factor(tabledata$early_strk)
+tabledata$late_cvd <- as.factor(tabledata$late_cvd)
+tabledata$late_mi <- as.factor(tabledata$late_mi)
+tabledata$late_chf <- as.factor(tabledata$late_chf)
+tabledata$late_strk <- as.factor(tabledata$late_strk)
 
 table1 <- CreateTableOne(vars = listVars, data = tabledata, strata = "SEX", testNonNormal = kruskal.test)
 table1 <- print(table1)

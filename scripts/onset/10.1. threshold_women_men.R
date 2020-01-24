@@ -2,6 +2,7 @@
 # presence vs. absence of SBP burden
 
 sdseq <- paste("sd",seq(100,150,5),sep = "") # predictor names
+signum <- function(x){x = ifelse(x < 0.001,"<0.001", ifelse(x < 0.01, sprintf("%.03f", x), ifelse(x < 0.06 ,sprintf("%.03f", x), sprintf("%.02f", x))))}
 
 all_coefs <- function(model_list){
   map(model_list, function(model){
@@ -143,18 +144,3 @@ write.csv(savetab_mi,"output/savetab_mi.csv")
 write.csv(savetab_strk,"output/savetab_strk.csv")
 
 
-
-# sd_strk_cox_m <- map(sdseq, function(burden){
-#   glm(strk ~ get(burden) + DBP + 
-#         AGE + BMI + DM + HRX + SMK + HDL + TC + race + cohort, 
-#       family = binomial("logit"),
-#       data = coxdat %>% filter(SEX==1))
-# })
-# sd_strk_cox_f <- map(sdseq, function(burden){
-#   glm(strk ~ get(burden) + DBP + 
-#         AGE + BMI + DM + HRX + SMK + HDL + TC + race + cohort, 
-#       family = binomial("logit"),
-#       data = coxdat %>% filter(SEX==2))
-# })
-# 
-# all_coefs(sd_strk_cox_m) %>% filter(term == "get(burden)")

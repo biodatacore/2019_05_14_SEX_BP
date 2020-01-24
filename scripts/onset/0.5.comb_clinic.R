@@ -9,14 +9,32 @@ ARIC_clin <- readRDS("data/ARIC_clin.rds")
 MESA_clin <- readRDS("data/MESA_clin.rds")
 cardia_clin <- readRDS("data/CARDIA_clin.rds")
 
-cardia_clin <- cardia_clin %>% dplyr::select(id, AGE, SEX, SBP, DBP, TC, HDL, BMI, SMK, DM, HRX, hardcvd, hardcvd_age, race) %>% mutate(cohort = "CARDIA")
-MESA_clin <- MESA_clin %>% dplyr::select(id, AGE, SEX, SBP, DBP, TC, HDL, BMI, SMK, DM, HRX, hardcvd, hardcvd_age, race) %>% mutate(cohort = "MESA")
-ARIC_clin <- ARIC_clin %>% dplyr::select(id, AGE, SEX, SBP, DBP, TC, HDL, BMI, SMK, DM, HRX, hardcvd, hardcvd_age, race) %>% mutate(cohort = "ARIC")
-FHS_clin <- FHS_clin %>% dplyr::select(id, AGE, SEX, SBP, DBP, TC, HDL, BMI, SMK, DM, HRX, hardcvd, hardcvd_age, race) %>% mutate(cohort = "FHS")
+cardia_clin <- cardia_clin %>% dplyr::select(id, AGE, SEX, SBP, DBP, TC, HDL, BMI, SMK, DM, HRX, hardcvd, hardcvd_age, dth, dth_age, race, strk, strk_age, chf, chf_age, mi, mi_age) %>% 
+  mutate(cohort = "CARDIA",
+         SBP = SBP + 2.6,
+         DBP = DBP + 6.2)
+MESA_clin <- MESA_clin %>% dplyr::select(id, AGE, SEX, SBP, DBP, TC, HDL, BMI, SMK, DM, HRX, hardcvd, hardcvd_age, dth, dth_age, race, strk, strk_age, chf,chf_age, mi, mi_age) %>% 
+  mutate(cohort = "MESA", 
+         SBP = SBP + 0.5, 
+         DBP = DBP + 2.9)
+ARIC_clin <- ARIC_clin %>% dplyr::select(id, AGE, SEX, SBP, DBP, TC, HDL, BMI, SMK, DM, HRX, hardcvd, hardcvd_age, dth, dth_age, race, strk, strk_age, chf,chf_age, mi, mi_age) %>% 
+  mutate(cohort = "ARIC",
+         SBP = SBP + 2.6,
+         DBP = DBP + 6.2)
+FHS_clin <- FHS_clin %>% dplyr::select(id, AGE, SEX, SBP, DBP, TC, HDL, BMI, SMK, DM, HRX, hardcvd, hardcvd_age, dth, dth_age, race, strk, strk_age, chf,chf_age, mi, mi_age) %>% 
+  mutate(cohort = "FHS")
 
-comb_clin <- rbind(cardia_clin, FHS_clin, MESA_clin, ARIC_clin)
+comb_clin <- rbind(cardia_clin, FHS_clin, MESA_clin, ARIC_clin) %>%
+  mutate(strktime = strk_age - AGE,
+         chftime = chf_age - AGE,
+         mitime = mi_age - AGE)
+comb_clin$SMK %>% summary()
+comb_clin$hardcvd %>% sum(na.rm = T)
+comb_clin$dth %>% sum(na.rm = T)
+saveRDS(comb_clin, "data/comb_clin.rds")
+
 comb_dat <- readRDS("data/comb_dat_id.rds")
-comb_dat %<>% mutate(AGE = round(AGE))
+comb_dat %<>% mutate(AGE = round(AGE), id = ID)
 head(comb_dat)
 # Filter out those who were under 18 or HTN at baseline --------------------------
 

@@ -14,19 +14,27 @@ cardia_dm <- read.csv("data/cardia/y00/data/csv/aaf08v2.csv")
 cardia_htntrt <- read.csv("data/cardia/y00/data/csv/aaf09med.csv")
 cardia_outcome <- read.csv("data/cardia/OUTCOMES/DATA/csv/outcomes2012.csv")
 
-cardia_AGE %<>% dplyr::select(id = PID, AGE = A01AGE1, SEX = A01SEX, race = A01RACE2) %>% na.omit()
-cardia_BP %<>% dplyr::select(id = PID, SBP = A02SBP, DBP = A02DBP) %>% na.omit()
-cardia_HDL %<>% dplyr::select(id = PID, TC = AL1CHOL, HDL = AL1HDL) %>% na.omit()
-cardia_BMI %<>% dplyr::select(id = PID, BMI = A20BMI) %>% na.omit()
-cardia_smk %<>% dplyr::select(id = PID, SMK = A10SMOKE) %>% mutate(SMK = ifelse(SMK != 0, 1, 0)) %>% na.omit()
-cardia_dm %<>% dplyr::select(id = PID, DM = A08DIAB) %>% na.omit()
-cardia_htntrt %<>% dplyr::select(id = PID, HRX = A09MDTYP) %>% dcast(id ~ HRX) %>% dplyr::select(id, HRX = HBP) %>% na.omit()
-cardia_outcome %<>% 
-  mutate(hardcvd = ifelse(strokeafnf==1|chffnf==1|CHDhfnf==1, 1, 0))
+cardia_AGE %<>% dplyr::select(id = PID, AGE = A01AGE1, SEX = A01SEX, race = A01RACE2)
+cardia_BP %<>% dplyr::select(id = PID, SBP = A02SBP, DBP = A02DBP)
+cardia_HDL %<>% dplyr::select(id = PID, TC = AL1CHOL, HDL = AL1HDL)
+cardia_BMI %<>% dplyr::select(id = PID, BMI = A20BMI)
+cardia_smk %<>% dplyr::select(id = PID, SMK = A10SMOKE) %>% mutate(SMK = ifelse(SMK == 1, 1, 0))
+cardia_dm %<>% dplyr::select(id = PID, DM = A08DIAB)
+cardia_htntrt %<>% dplyr::select(id = PID, HRX = A09MDTYP) %>% dcast(id ~ HRX) %>% dplyr::select(id, HRX = HBP)
+cardia_outcome %<>%
+  mutate(hardcvd = ifelse(strokeafnf==1|chffnf==1|CHDhfnf==1, 1, 0),
+         hardchd = CHDhfnf,
+         dth = ifelse(dead == 1,1,0),
+         dthtime = deathatt,
+         strk = strokeafnf,
+         strktime = strokeafnfatt,
+         chf = chffnf,
+         chftime = chffnfatt,
+         mi = CHDhfnf,
+         mitime = chdhfnfatt)
 
 cardia_outcome <- transform(cardia_outcome, cvd_day_dif = pmin(strokeafnfatt, chffnfatt, chdhfnfatt, na.rm = T)) %>%
-  dplyr::select(id = PID, hardcvd, cvd_day_dif) 
-
+  dplyr::select(id = PID, hardcvd, cvd_day_dif, hf_day_dif = chffnfatt, hardchd, dth, dthtime, strk,strktime,chf,chftime,mi,mitime)
 
 cardia_clin <- cardia_AGE %>% 
   left_join(cardia_BP, by = "id") %>% 
@@ -36,14 +44,16 @@ cardia_clin <- cardia_AGE %>%
   left_join(cardia_dm, by ="id") %>%
   left_join(cardia_htntrt, by = "id") %>%
   left_join(cardia_outcome, by = "id") %>%
-  mutate(race = ifelse(race==4, 3, 1),
+  mutate(race = ifelse(race == 4, 3, 1),
          HRX = ifelse(is.na(HRX), 0, HRX),
-         DM = ifelse(DM== 2, 1, 0)) %>% 
-  na.omit() %>%
-  mutate(hardcvd_age = AGE + cvd_day_dif/365.25)
+         DM = ifelse(DM == 2, 1, 0)) %>% 
+  mutate(hardcvd_age = AGE + cvd_day_dif/365.25,
+         dth_age = AGE + dthtime/365.25,
+         strk_age = AGE + strktime/365.25,
+         chf_age = AGE + chftime/365.25,
+         mi_age = AGE + mitime/365.25)
 
 saveRDS(cardia_clin, "data/cardia_clin.rds")
-
 
 cardia_BP0 <- read.csv("data/cardia/y00/data/csv/aaf02.csv")
 cardia_BP1 <- read.csv("data/cardia/y02/DATA/csv/baf02.csv")
@@ -125,14 +135,14 @@ cardia_smk6 <- read.csv("data/cardia/y20/data/csv/gaf09tob.csv") %>% dplyr::sele
 cardia_smk7 <- read.csv("data/cardia/y25/data/csv/haf09tob.csv") %>% dplyr::select(id = PID, SMK = H09SMKNW)
 
 
-cardia_tc0 <- read.csv("data/cardia/y00/data/csv/aalip.csv") %>% dplyr::select(id = PID, TC = AL1CHOL)
+cardia_tc0 <- read.csv("data/cardia/y00/data/csv/aalip.csv") %>% dplyr::select(id = PID, TC = AL1CHOL, HDL = AL1HDL, TG = AL1NTRIG, LDL = AL1LDL)
 # cardia_tc1 <- read.csv("data/cardia/y02/DATA/csv/balip.csv") %>% dplyr::select(id = PID, TC = BL1CHOL) # visit02 absent
-cardia_tc2 <- read.csv("data/cardia/y05/DATA/csv/calip.csv") %>% dplyr::select(id = PID, TC = CL1CHOL)
-cardia_tc3 <- read.csv("data/cardia/y07/DATA/csv/dalip.csv") %>% dplyr::select(id = PID, TC = DL1CHOL)
-cardia_tc4 <- read.csv("data/cardia/y10/data/csv/ealip.csv") %>% dplyr::select(id = PID, TC = EL1CHOL)
-cardia_tc5 <- read.csv("data/cardia/y15/DATA/csv/falip.csv") %>% dplyr::select(id = PID, TC = FL1CHOL)
-cardia_tc6 <- read.csv("data/cardia/y20/data/csv/galip.csv") %>% dplyr::select(id = PID, TC = GL1CHOL)
-cardia_tc7 <- read.csv("data/cardia/y25/data/csv/halip.csv") %>% dplyr::select(id = PID, TC = HL1CHOL)
+cardia_tc2 <- read.csv("data/cardia/y05/DATA/csv/calip.csv") %>% dplyr::select(id = PID, TC = CL1CHOL, HDL = CL1HDL, TG = CL1NTRIG, LDL = CL1LDL)
+cardia_tc3 <- read.csv("data/cardia/y07/DATA/csv/dalip.csv") %>% dplyr::select(id = PID, TC = DL1CHOL, HDL = DL1HDL, TG = DL1NTRIG, LDL = DL1LDL)
+cardia_tc4 <- read.csv("data/cardia/y10/data/csv/ealip.csv") %>% dplyr::select(id = PID, TC = EL1CHOL, HDL = EL1HDL, TG = EL1NTRIG, LDL = EL1LDL)
+cardia_tc5 <- read.csv("data/cardia/y15/DATA/csv/falip.csv") %>% dplyr::select(id = PID, TC = FL1CHOL, HDL = FL1HDL, TG = FL1NTRIG, LDL = FL1LDL)
+cardia_tc6 <- read.csv("data/cardia/y20/data/csv/galip.csv") %>% dplyr::select(id = PID, TC = GL1CHOL, HDL = GL1HDL, TG = GL1NTRIG, LDL = GL1LDL)
+cardia_tc7 <- read.csv("data/cardia/y25/data/csv/halip.csv") %>% dplyr::select(id = PID, TC = HL1CHOL, HDL = HL1HDL, TG = HL1NTRIG, LDL = HL1LDL)
 
 
 
@@ -151,7 +161,7 @@ cardia1 <- cardia_BP1 %>%
   left_join(cardia_AGE1, by = "id") %>% 
   left_join(cardia_bmi1, by = "id") %>% 
   left_join(cardia_dm1, by = "id") %>% 
-  left_join(cardia_smk1, by = "id") %>% mutate(TC = NA)
+  left_join(cardia_smk1, by = "id") %>% mutate(TC = NA, HDL = NA, TG = NA, LDL = NA)
 
 cardia2 <- cardia_BP2 %>% 
   left_join(cardia_htntrt2, by = "id") %>% 
@@ -212,4 +222,5 @@ cardia_clean <- rbind(cardia0, cardia1, cardia2, cardia3, cardia4, cardia5, card
          SMK = if_else(SMK== 1, 1, 0, missing = 0),
          DM = ifelse(DM== 2, 1, 0))
 cardia_clean$id %>% unique() %>% length()
+cardia_clean$SMK %>% as.factor() %>% summary()
 saveRDS(cardia_clean, "data/cardia_cleaned.rds")
