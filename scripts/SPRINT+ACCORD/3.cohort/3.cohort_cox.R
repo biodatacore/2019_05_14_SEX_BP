@@ -26,6 +26,13 @@ mddata <- comb_event %>%
   filter(!is.na(visit))
 nrow(mddata)
 
+mddata$cohort %>% as.factor() %>%summary()
+
+ex1 <- mddata %>% filter(HRX==0)
+ex2 <- mddata %>% anti_join(ex1, by = "id") %>% filter(SBP>=140)
+ex3 <- mddata %>% anti_join(ex1, by = "id") %>% anti_join(ex2, by = "id") %>% filter(AGE>=70)
+ex4 <- mddata %>% anti_join(ex1, by = "id") %>% anti_join(ex2, by = "id") %>% anti_join(ex3, by = "id") %>% filter(chd_age<AGE)
+
 mddata %<>% na.omit()
 nrow(mddata)
 

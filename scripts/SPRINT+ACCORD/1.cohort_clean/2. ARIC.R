@@ -60,10 +60,11 @@ aric_select_v2 <- aric_v2 %>%
   left_join(aric_v2_hr %>% dplyr::select(-forprofit) %>% mutate(ID_C = as.character(ID_C)), by = "ID_C") %>%
   dplyr::select(ID_C, AGE = V2AGE22, SEX = GENDER, RACE = RACEGRP, SBP = SBPB21, DBP = SBPB22,
                 DM = DIABTS23, HRX = HYPTMDCODE21, HR = ECGC31, LVH = CLVH21, CHOLMED = CHOLMDCODE21, WHR = WSTHPR21, ESTROGEN = HORMON22,
-                BMI = BMI21, SMK = CURSMK21, FG = GLUSIU21, TC = TCHSIU21, HDL = HDL221, LDL = LDL22, TG = TRGSIU21) %>% 
+                BMI = BMI21, SMK = CURSMK21, FG = GLUSIU21, TC = TCHSIU21, HDL = HDLSIU21, LDL = LDL22, TG = TRGSIU21) %>% 
   mutate(PD_START_AGE = NA, PD_STOP_AGE = NA, PD_STOP_CURR = NA, PD_STOP_CAUSE = NA, LIVE_BIRTH = NA, CONTCPT = NA, INSULIN= NA,
          CHOLMED = ifelse(CHOLMED==1,1,0),
          LVH = ifelse(LVH == 1,1,0),
+         HDL = HDL/0.02586,
          VISIT = 2)
 
 

@@ -210,4 +210,13 @@ postscript("output/forest_summary.eps", width = 10, height = 4.5)
 forest_summary
 dev.off()
 
+COMB <-mddata %>%
+  dplyr::select(AGE, id, SEX) %>%
+  rbind(comb_sprint_accord %>% dplyr::select(AGE, id, SEX)) 
+
+COMB$SEX %>% summary()
+COMB$AGE %>% summary()
+COMB$AGE %>% sd()
+
+
 
