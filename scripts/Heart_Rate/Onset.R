@@ -124,8 +124,8 @@ heart_rate <- glm(hardcvd ~ onsetgroup +
                   data = hr_dat) %>% summary()
 heart_rate
 
-# cohort
-glm(hardcvd ~ onsetgroup+ 
+# odds ratio of early vs late attaining RHR < 70
+glm(hardcvd ~ onsetgroup + 
       AGE + SEX + BMI + SBP + HRX + SMK + DM + TC + race + cohort,
     family = binomial("logit"),
     data = hr_dat %>% filter(cohort =="ARIC")) %>% summary()
