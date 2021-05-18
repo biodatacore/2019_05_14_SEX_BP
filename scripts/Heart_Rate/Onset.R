@@ -13,6 +13,8 @@ library(haven)
 library(boot)
 library(splines)
 
+## read combined dataset ----
+
 comb_dat <- readRDS("data/comb_dat_id_HR.rds") %>% 
   mutate(race = as.character(race)) %>% 
   dplyr::select(c("AGE","SEX","HR","BMI","SBP","HRX","SMK","DM","TC","HDL","race","cohort","id","visit")) %>%
@@ -32,7 +34,7 @@ comb_clin$cohort %>% as.factor() %>% summary()
 
 healthy_hr <- 70
 
-## Filter out those who were under 18 or RHR<70 at baseline --------------------------
+## Filter out those who had RHR<70 at baseline --------------------------
 
 baseline_hr <-
   comb_dat %>%
@@ -63,6 +65,8 @@ onset$onsetage <- apply(dplyr::select(onset, -id), 1, FUN = min, na.rm = T)
 
 onset %<>% 
   mutate(onsetage = ifelse(onsetage == Inf, NA, onsetage))
+
+## read covariates at last visit
 
 covdat <- comb_dat %>% 
   group_by(id) %>%
